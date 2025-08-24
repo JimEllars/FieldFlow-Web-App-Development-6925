@@ -1,0 +1,23 @@
+{
+  "name": "FieldFlow - Construction Management",
+  "short_name": "FieldFlow",
+  "description": "Next-gen project management for construction and landscaping contractors",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/fieldflow-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/fieldflow-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["productivity", "business"]
+}
