@@ -35,10 +35,22 @@ const LoginScreen = () => {
   }
 
   const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleDemoLogin = async () => {
     setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+      email: 'demo@fieldflow.com',
+      password: 'demo123456'
     })
+    
+    const result = await login('demo@fieldflow.com', 'demo123456')
+    
+    if (result.success) {
+      navigate('/app/dashboard')
+    } else {
+      setError(result.error || 'Demo login failed')
+    }
   }
 
   return (
@@ -161,14 +173,25 @@ const LoginScreen = () => {
       </div>
 
       {/* Demo Credentials */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-        <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">
-          Demo Credentials:
-        </p>
-        <p className="text-xs text-blue-600 dark:text-blue-400">
-          Email: demo@fieldflow.com<br />
-          Password: demo123
-        </p>
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">
+              Try the Demo
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-400">
+              Experience FieldFlow with sample data
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+          >
+            Demo Login
+          </button>
+        </div>
       </div>
     </div>
   )

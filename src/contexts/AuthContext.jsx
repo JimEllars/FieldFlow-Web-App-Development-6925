@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
@@ -16,65 +17,94 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Check for stored auth token on app load
-    const checkAuthStatus = async () => {
+    // Get initial session
+    const getSession = async () => {
       try {
-        const token = localStorage.getItem('fieldflow-auth-token')
-        const userData = localStorage.getItem('fieldflow-user-data')
+        const { data: { session }, error } = await supabase.auth.getSession()
         
-        if (token && userData) {
-          const parsedUser = JSON.parse(userData)
-          setUser(parsedUser)
-          setIsAuthenticated(true)
+        if (error) {
+          console.error('Error getting session:', error)
+        } else if (session?.user) {
+          await setUserFromSession(session.user)
         }
       } catch (error) {
-        console.error('Error checking auth status:', error)
-        // Clear invalid stored data
-        localStorage.removeItem('fieldflow-auth-token')
-        localStorage.removeItem('fieldflow-user-data')
+        console.error('Error in getSession:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    checkAuthStatus()
+    getSession()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email)
+        
+        if (session?.user) {
+          await setUserFromSession(session.user)
+        } else {
+          setUser(null)
+          setIsAuthenticated(false)
+        }
+        setLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [])
+
+  const setUserFromSession = async (authUser) => {
+    try {
+      // Get user profile from profiles table
+      const { data: profile, error } = await supabase
+        .from('profiles_ff2024')
+        .select('*')
+        .eq('id', authUser.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error)
+      }
+
+      const userData = {
+        id: authUser.id,
+        email: authUser.email,
+        name: profile?.name || authUser.user_metadata?.name || authUser.email,
+        company: profile?.company || '',
+        role: profile?.role || 'Owner',
+        avatar: profile?.avatar_url || null,
+        subscription: {
+          plan: profile?.subscription_plan || 'trial',
+          status: profile?.subscription_status || 'trial',
+          expiresAt: profile?.subscription_expires_at || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      }
+
+      setUser(userData)
+      setIsAuthenticated(true)
+    } catch (error) {
+      console.error('Error setting user from session:', error)
+    }
+  }
 
   const login = async (email, password) => {
     try {
       setLoading(true)
       
-      // Simulate API call - replace with actual authentication
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock user data - replace with actual API response
-      const mockUser = {
-        id: '1',
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        name: 'John Contractor',
-        company: 'ABC Construction',
-        role: 'Project Manager',
-        avatar: null,
-        subscription: {
-          plan: 'professional',
-          status: 'active',
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        }
+        password
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
       }
-      
-      const mockToken = 'mock-jwt-token-' + Date.now()
-      
-      // Store auth data
-      localStorage.setItem('fieldflow-auth-token', mockToken)
-      localStorage.setItem('fieldflow-user-data', JSON.stringify(mockUser))
-      
-      setUser(mockUser)
-      setIsAuthenticated(true)
-      
-      return { success: true }
+
+      return { success: true, user: data.user }
     } catch (error) {
       console.error('Login error:', error)
-      return { success: false, error: 'Invalid credentials' }
+      return { success: false, error: 'An unexpected error occurred' }
     } finally {
       setLoading(false)
     }
@@ -83,36 +113,35 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setLoading(true)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      const newUser = {
-        id: Date.now().toString(),
+
+      const { data, error } = await supabase.auth.signUp({
         email: userData.email,
-        name: userData.name,
-        company: userData.company,
-        role: 'Owner',
-        avatar: null,
-        subscription: {
-          plan: 'trial',
-          status: 'trial',
-          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+        password: userData.password,
+        options: {
+          data: {
+            name: userData.name,
+            company: userData.company
+          }
+        }
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      // If registration successful but email confirmation required
+      if (data.user && !data.session) {
+        return { 
+          success: true, 
+          message: 'Registration successful! Please check your email to confirm your account.',
+          requiresConfirmation: true 
         }
       }
-      
-      const token = 'mock-jwt-token-' + Date.now()
-      
-      localStorage.setItem('fieldflow-auth-token', token)
-      localStorage.setItem('fieldflow-user-data', JSON.stringify(newUser))
-      
-      setUser(newUser)
-      setIsAuthenticated(true)
-      
-      return { success: true }
+
+      return { success: true, user: data.user }
     } catch (error) {
       console.error('Registration error:', error)
-      return { success: false, error: 'Registration failed' }
+      return { success: false, error: 'An unexpected error occurred' }
     } finally {
       setLoading(false)
     }
@@ -122,14 +151,16 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       
-      // Clear local storage
-      localStorage.removeItem('fieldflow-auth-token')
-      localStorage.removeItem('fieldflow-user-data')
+      const { error } = await supabase.auth.signOut()
       
-      // Clear app state
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      // Clear local state
       setUser(null)
       setIsAuthenticated(false)
-      
+
       // Clear any cached data
       if ('caches' in window) {
         const cacheNames = await caches.keys()
@@ -137,7 +168,7 @@ export const AuthProvider = ({ children }) => {
           cacheNames.map(cacheName => caches.delete(cacheName))
         )
       }
-      
+
       return { success: true }
     } catch (error) {
       console.error('Logout error:', error)
@@ -151,9 +182,14 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
       return { success: true, message: 'Password reset email sent' }
     } catch (error) {
       console.error('Forgot password error:', error)
@@ -166,11 +202,36 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     try {
       setLoading(true)
+
+      if (!user?.id) {
+        return { success: false, error: 'User not authenticated' }
+      }
+
+      // Update profile in database
+      const { error } = await supabase
+        .from('profiles_ff2024')
+        .update({
+          name: profileData.name,
+          company: profileData.company,
+          role: profileData.role,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) {
+        console.error('Error updating profile:', error)
+        return { success: false, error: error.message }
+      }
+
+      // Update local user state
+      const updatedUser = {
+        ...user,
+        name: profileData.name,
+        company: profileData.company,
+        role: profileData.role
+      }
       
-      const updatedUser = { ...user, ...profileData }
-      localStorage.setItem('fieldflow-user-data', JSON.stringify(updatedUser))
       setUser(updatedUser)
-      
       return { success: true }
     } catch (error) {
       console.error('Profile update error:', error)

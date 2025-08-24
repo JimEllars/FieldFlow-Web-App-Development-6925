@@ -13,7 +13,11 @@ const LoadingSpinner = ({ size = 'md', text = 'Loading...' }) => {
       <motion.div
         className={`${sizeClasses[size]} border-4 border-gray-200 dark:border-gray-700 border-t-primary-600 rounded-full`}
         animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          ease: "linear"
+        }}
       />
       {text && (
         <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">

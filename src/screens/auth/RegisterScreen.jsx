@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 
-const { FiUser, FiMail, FiLock, FiBuilding, FiEye, FiEyeOff, FiLoader } = FiIcons
+const { FiUser, FiMail, FiLock, FiBuilding, FiEye, FiEyeOff, FiLoader, FiCheckCircle } = FiIcons
 
 const RegisterScreen = () => {
   const [formData, setFormData] = useState({
@@ -17,12 +17,14 @@ const RegisterScreen = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const { register, loading } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
 
     // Validation
     if (!formData.name || !formData.email || !formData.company || !formData.password || !formData.confirmPassword) {
@@ -43,17 +45,49 @@ const RegisterScreen = () => {
     const result = await register(formData)
     
     if (result.success) {
-      navigate('/app/dashboard')
+      if (result.requiresConfirmation) {
+        setSuccess(result.message)
+      } else {
+        navigate('/app/dashboard')
+      }
     } else {
       setError(result.error || 'Registration failed')
     }
   }
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  if (success) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <SafeIcon icon={FiCheckCircle} className="w-8 h-8 text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Check your email
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            {success}
+          </p>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-sm text-blue-700 dark:text-blue-400">
+            Once you've confirmed your email, you can sign in to start using FieldFlow.
+          </p>
+        </div>
+
+        <Link
+          to="/auth/login"
+          className="w-full btn-primary text-center inline-block"
+        >
+          Back to sign in
+        </Link>
+      </div>
+    )
   }
 
   return (
