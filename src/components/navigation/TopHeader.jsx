@@ -6,11 +6,11 @@ import { useOffline } from '../../contexts/OfflineContext'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../common/SafeIcon'
 
-const { FiMenu, FiSun, FiMoon, FiWifi, FiWifiOff, FiRotateCw } = FiIcons
+const { FiMenu, FiSun, FiMoon, FiWifi, FiWifiOff, FiRotateCw, FiTestTube } = FiIcons
 
 const TopHeader = ({ onMenuClick }) => {
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, testMode } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { isOnline, syncStatus, triggerSync } = useOffline()
 
@@ -40,11 +40,18 @@ const TopHeader = ({ onMenuClick }) => {
           >
             <SafeIcon icon={FiMenu} className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           </button>
-          
           <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {getPageTitle()}
-            </h1>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {getPageTitle()}
+              </h1>
+              {testMode && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+                  <SafeIcon icon={FiTestTube} className="w-3 h-3 mr-1" />
+                  Test
+                </span>
+              )}
+            </div>
             {user?.company && (
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {user.company}
@@ -56,24 +63,20 @@ const TopHeader = ({ onMenuClick }) => {
         {/* Right Side */}
         <div className="flex items-center space-x-2">
           {/* Sync Status */}
-          <button
-            onClick={triggerSync}
-            disabled={!isOnline || syncStatus === 'syncing'}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
-            title={isOnline ? 'Sync data' : 'Offline'}
-          >
-            {syncStatus === 'syncing' ? (
-              <SafeIcon 
-                icon={FiRotateCw} 
-                className="w-4 h-4 text-primary-600 animate-spin" 
-              />
-            ) : (
-              <SafeIcon 
-                icon={isOnline ? FiWifi : FiWifiOff} 
-                className={`w-4 h-4 ${isOnline ? 'text-green-600' : 'text-gray-400'}`} 
-              />
-            )}
-          </button>
+          {!testMode && (
+            <button
+              onClick={triggerSync}
+              disabled={!isOnline || syncStatus === 'syncing'}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
+              title={isOnline ? 'Sync data' : 'Offline'}
+            >
+              {syncStatus === 'syncing' ? (
+                <SafeIcon icon={FiRotateCw} className="w-4 h-4 text-primary-600 animate-spin" />
+              ) : (
+                <SafeIcon icon={isOnline ? FiWifi : FiWifiOff} className={`w-4 h-4 ${isOnline ? 'text-green-600' : 'text-gray-400'}`} />
+              )}
+            </button>
+          )}
 
           {/* Theme Toggle */}
           <button
@@ -81,10 +84,7 @@ const TopHeader = ({ onMenuClick }) => {
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
             aria-label="Toggle theme"
           >
-            <SafeIcon 
-              icon={theme === 'dark' ? FiSun : FiMoon} 
-              className="w-4 h-4 text-gray-700 dark:text-gray-300" 
-            />
+            <SafeIcon icon={theme === 'dark' ? FiSun : FiMoon} className="w-4 h-4 text-gray-700 dark:text-gray-300" />
           </button>
 
           {/* User Avatar */}

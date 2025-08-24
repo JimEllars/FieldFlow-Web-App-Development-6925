@@ -16,12 +16,26 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  // Test Mode - Enable for development/testing
+  const TEST_MODE = true // Set to false for production
+
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
       try {
+        if (TEST_MODE) {
+          // In test mode, check for test user in localStorage
+          const testUser = localStorage.getItem('fieldflow-test-user')
+          if (testUser) {
+            const userData = JSON.parse(testUser)
+            setUser(userData)
+            setIsAuthenticated(true)
+          }
+          setLoading(false)
+          return
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession()
-        
         if (error) {
           console.error('Error getting session:', error)
         } else if (session?.user) {
@@ -36,22 +50,22 @@ export const AuthProvider = ({ children }) => {
 
     getSession()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email)
-        
-        if (session?.user) {
-          await setUserFromSession(session.user)
-        } else {
-          setUser(null)
-          setIsAuthenticated(false)
+    // Listen for auth changes (only if not in test mode)
+    if (!TEST_MODE) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('Auth state change:', event, session?.user?.email)
+          if (session?.user) {
+            await setUserFromSession(session.user)
+          } else {
+            setUser(null)
+            setIsAuthenticated(false)
+          }
+          setLoading(false)
         }
-        setLoading(false)
-      }
-    )
-
-    return () => subscription.unsubscribe()
+      )
+      return () => subscription.unsubscribe()
+    }
   }, [])
 
   const setUserFromSession = async (authUser) => {
@@ -88,10 +102,50 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const createTestUser = (email, name = null, company = null) => {
+    const testUser = {
+      id: `test-${Date.now()}`, // Generate unique test ID
+      email: email,
+      name: name || email.split('@')[0] || 'Test User',
+      company: company || 'Test Company',
+      role: 'Owner',
+      avatar: null,
+      subscription: {
+        plan: 'professional',
+        status: 'active',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    }
+
+    // Store test user in localStorage
+    localStorage.setItem('fieldflow-test-user', JSON.stringify(testUser))
+    return testUser
+  }
+
   const login = async (email, password) => {
     try {
       setLoading(true)
-      
+
+      if (TEST_MODE) {
+        // Test mode - accept any credentials
+        console.log('🧪 TEST MODE: Accepting any login credentials')
+        
+        // Check if it's demo credentials
+        if (email === 'demo@fieldflow.com' && password === 'demo123456') {
+          const demoUser = createTestUser(email, 'John Contractor', 'Demo Construction Co.')
+          setUser(demoUser)
+          setIsAuthenticated(true)
+          return { success: true, user: demoUser }
+        }
+        
+        // Create test user for any other credentials
+        const testUser = createTestUser(email)
+        setUser(testUser)
+        setIsAuthenticated(true)
+        return { success: true, user: testUser }
+      }
+
+      // Production mode - use Supabase auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -114,6 +168,21 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
 
+      if (TEST_MODE) {
+        // Test mode - simulate registration
+        console.log('🧪 TEST MODE: Simulating registration')
+        
+        const testUser = createTestUser(
+          userData.email,
+          userData.name,
+          userData.company
+        )
+        setUser(testUser)
+        setIsAuthenticated(true)
+        return { success: true, user: testUser }
+      }
+
+      // Production mode - use Supabase auth
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -131,10 +200,10 @@ export const AuthProvider = ({ children }) => {
 
       // If registration successful but email confirmation required
       if (data.user && !data.session) {
-        return { 
-          success: true, 
+        return {
+          success: true,
           message: 'Registration successful! Please check your email to confirm your account.',
-          requiresConfirmation: true 
+          requiresConfirmation: true
         }
       }
 
@@ -150,9 +219,17 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true)
-      
+
+      if (TEST_MODE) {
+        // Test mode - clear localStorage
+        localStorage.removeItem('fieldflow-test-user')
+        setUser(null)
+        setIsAuthenticated(false)
+        return { success: true }
+      }
+
+      // Production mode
       const { error } = await supabase.auth.signOut()
-      
       if (error) {
         return { success: false, error: error.message }
       }
@@ -181,7 +258,13 @@ export const AuthProvider = ({ children }) => {
   const forgotPassword = async (email) => {
     try {
       setLoading(true)
-      
+
+      if (TEST_MODE) {
+        // Test mode - simulate password reset
+        console.log('🧪 TEST MODE: Simulating password reset')
+        return { success: true, message: 'Password reset email sent (test mode)' }
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`
       })
@@ -207,7 +290,20 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'User not authenticated' }
       }
 
-      // Update profile in database
+      if (TEST_MODE) {
+        // Test mode - update localStorage
+        const updatedUser = {
+          ...user,
+          name: profileData.name,
+          company: profileData.company,
+          role: profileData.role
+        }
+        localStorage.setItem('fieldflow-test-user', JSON.stringify(updatedUser))
+        setUser(updatedUser)
+        return { success: true }
+      }
+
+      // Production mode
       const { error } = await supabase
         .from('profiles_ff2024')
         .update({
@@ -230,8 +326,8 @@ export const AuthProvider = ({ children }) => {
         company: profileData.company,
         role: profileData.role
       }
-      
       setUser(updatedUser)
+
       return { success: true }
     } catch (error) {
       console.error('Profile update error:', error)
@@ -249,7 +345,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     forgotPassword,
-    updateProfile
+    updateProfile,
+    testMode: TEST_MODE
   }
 
   return (

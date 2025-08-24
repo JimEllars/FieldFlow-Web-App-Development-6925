@@ -24,6 +24,7 @@ const CreateDailyLogScreen = React.lazy(() => import('./screens/dailyLogs/Create
 const TimeTrackingScreen = React.lazy(() => import('./screens/timeTracking/TimeTrackingScreen'))
 const DocumentsScreen = React.lazy(() => import('./screens/documents/DocumentsScreen'))
 const DocumentViewerScreen = React.lazy(() => import('./screens/documents/DocumentViewerScreen'))
+const UploadDocumentScreen = React.lazy(() => import('./screens/documents/UploadDocumentScreen'))
 const ProfileScreen = React.lazy(() => import('./screens/profile/ProfileScreen'))
 const SettingsScreen = React.lazy(() => import('./screens/settings/SettingsScreen'))
 const BillingScreen = React.lazy(() => import('./screens/billing/BillingScreen'))
@@ -47,36 +48,40 @@ function App() {
                     </Route>
 
                     {/* Protected App Routes */}
-                    <Route path="/app" element={
-                      <ProtectedRoute>
-                        <AppLayout />
-                      </ProtectedRoute>
-                    }>
+                    <Route
+                      path="/app"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout />
+                        </ProtectedRoute>
+                      }
+                    >
                       <Route index element={<Navigate to="dashboard" replace />} />
                       <Route path="dashboard" element={<DashboardScreen />} />
-                      
+
                       {/* Projects */}
                       <Route path="projects" element={<ProjectsScreen />} />
                       <Route path="projects/:projectId" element={<ProjectDetailScreen />} />
-                      
+
                       {/* Schedule */}
                       <Route path="schedule" element={<ScheduleScreen />} />
-                      
+
                       {/* Tasks */}
                       <Route path="tasks" element={<TasksScreen />} />
                       <Route path="tasks/:taskId" element={<TaskDetailScreen />} />
-                      
+
                       {/* Daily Logs */}
                       <Route path="daily-logs" element={<DailyLogsScreen />} />
                       <Route path="daily-logs/new" element={<CreateDailyLogScreen />} />
-                      
+
                       {/* Time Tracking */}
                       <Route path="time-tracking" element={<TimeTrackingScreen />} />
-                      
+
                       {/* Documents */}
                       <Route path="documents" element={<DocumentsScreen />} />
+                      <Route path="documents/upload" element={<UploadDocumentScreen />} />
                       <Route path="documents/:documentId" element={<DocumentViewerScreen />} />
-                      
+
                       {/* Profile & Settings */}
                       <Route path="profile" element={<ProfileScreen />} />
                       <Route path="settings" element={<SettingsScreen />} />

@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 
-const { FiMail, FiLock, FiEye, FiEyeOff, FiLoader } = FiIcons
+const { FiMail, FiLock, FiEye, FiEyeOff, FiLoader, FiTestTube } = FiIcons
 
 const LoginScreen = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +13,7 @@ const LoginScreen = () => {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const { login, loading } = useAuth()
+  const { login, loading, testMode } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -26,7 +26,6 @@ const LoginScreen = () => {
     }
 
     const result = await login(formData.email, formData.password)
-    
     if (result.success) {
       navigate('/app/dashboard')
     } else {
@@ -39,18 +38,61 @@ const LoginScreen = () => {
   }
 
   const handleDemoLogin = async () => {
+    setError('')
+    
+    // Set demo credentials
+    const demoEmail = 'demo@fieldflow.com'
+    const demoPassword = 'demo123456'
+    
     setFormData({
-      email: 'demo@fieldflow.com',
-      password: 'demo123456'
+      email: demoEmail,
+      password: demoPassword
     })
-    
-    const result = await login('demo@fieldflow.com', 'demo123456')
-    
+
+    // Attempt login with demo credentials
+    const result = await login(demoEmail, demoPassword)
     if (result.success) {
       navigate('/app/dashboard')
     } else {
       setError(result.error || 'Demo login failed')
     }
+  }
+
+  const handleTestLogin = async () => {
+    setError('')
+    
+    // Set test credentials
+    const testEmail = 'test@example.com'
+    const testPassword = 'password'
+    
+    setFormData({
+      email: testEmail,
+      password: testPassword
+    })
+
+    // Attempt login with test credentials
+    const result = await login(testEmail, testPassword)
+    if (result.success) {
+      navigate('/app/dashboard')
+    } else {
+      setError(result.error || 'Test login failed')
+    }
+  }
+
+  const handleCreateDemoAccount = async () => {
+    setError('')
+    
+    // Navigate to register page with pre-filled demo data
+    navigate('/auth/register', {
+      state: {
+        demoData: {
+          name: 'John Contractor',
+          email: 'demo@fieldflow.com',
+          company: 'Demo Construction Co.',
+          password: 'demo123456'
+        }
+      }
+    })
   }
 
   return (
@@ -62,6 +104,12 @@ const LoginScreen = () => {
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
           Sign in to your FieldFlow account
         </p>
+        {testMode && (
+          <div className="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+            <SafeIcon icon={FiTestTube} className="w-3 h-3 mr-1" />
+            Test Mode Active
+          </div>
+        )}
       </div>
 
       {error && (
@@ -115,9 +163,9 @@ const LoginScreen = () => {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
-              <SafeIcon 
-                icon={showPassword ? FiEyeOff : FiEye} 
-                className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" 
+              <SafeIcon
+                icon={showPassword ? FiEyeOff : FiEye}
+                className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               />
             </button>
           </div>
@@ -172,26 +220,74 @@ const LoginScreen = () => {
         </p>
       </div>
 
-      {/* Demo Credentials */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">
-              Try the Demo
+      {/* Test Mode Quick Login */}
+      {testMode && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <div className="mb-3">
+            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-2">
+              🧪 Test Mode - Quick Login
             </p>
-            <p className="text-xs text-blue-700 dark:text-blue-400">
-              Experience FieldFlow with sample data
+            <p className="text-xs text-yellow-700 dark:text-yellow-400 mb-3">
+              In test mode, you can sign in with any email and password combination
             </p>
           </div>
+          
+          <div className="flex flex-col space-y-2">
+            <button
+              type="button"
+              onClick={handleTestLogin}
+              disabled={loading}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Quick Test Login'}
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Demo Login'}
+            </button>
+          </div>
+          
+          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+            Just fill in any email/password above and click "Sign in", or use the quick buttons
+          </p>
+        </div>
+      )}
+
+      {/* Demo Credentials - Always show for convenience */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="mb-3">
+          <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+            🚀 Try the Demo
+          </p>
+          <p className="text-xs text-blue-700 dark:text-blue-400 mb-3">
+            Experience FieldFlow with sample construction project data
+          </p>
+          <div className="text-xs text-blue-600 dark:text-blue-300 mb-3 p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+            <strong>Demo Credentials:</strong><br />
+            Email: demo@fieldflow.com<br />
+            Password: demo123456
+          </div>
+        </div>
+        
+        <div className="flex flex-col space-y-2">
           <button
             type="button"
-            onClick={handleDemoLogin}
+            onClick={handleCreateDemoAccount}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+            className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
           >
-            Demo Login
+            Create Demo Account
           </button>
         </div>
+        
+        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+          {testMode ? 'In test mode, any credentials work!' : 'Create demo account if needed'}
+        </p>
       </div>
     </div>
   )
