@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useData } from '../../contexts/DataContext'
-import { useAuth } from '../../contexts/AuthContext'
-import { useOptimisticForm } from '../../components/common/OptimisticUI'
+import { useDataStore } from '../../stores/dataStore'
+import { useAuthStore } from '../../stores/authStore'
+import { useAppStore } from '../../stores/appStore'
 import { useFormValidation } from '../../hooks/useFormValidation'
 import { commonValidationRules } from '../../utils/validation'
 import * as FiIcons from 'react-icons/fi'
@@ -12,8 +12,9 @@ const { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiCheckCircle, FiAlertTriangle } 
 
 const CreateProjectScreen = () => {
   const navigate = useNavigate()
-  const { createProject } = useData()
-  const { user } = useAuth()
+  const { user } = useAuthStore()
+  const { createProject } = useDataStore()
+  const addNotification = useAppStore(state => state.addNotification)
 
   // Form state with enhanced validation
   const initialValues = {
@@ -43,17 +44,16 @@ const CreateProjectScreen = () => {
     debounceMs: 300
   })
 
-  // Optimistic form submission with enhanced feedback
-  const { isSubmitting, submitError, submitCreate, clearError } = useOptimisticForm('projects')
   const [teamMember, setTeamMember] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleFieldChange = (name, value) => {
     setValue(name, value)
-    if (submitError) clearError()
   }
 
   const handleAddTeamMember = () => {
     if (!teamMember.trim()) return
+    
     const newTeam = [...formData.team, teamMember.trim()]
     handleFieldChange('team', newTeam)
     setTeamMember('')
@@ -65,32 +65,59 @@ const CreateProjectScreen = () => {
   }
 
   const onSubmit = handleSubmit(async (validatedData) => {
-    const projectData = {
-      ...validatedData,
-      budget: parseFloat(validatedData.budget) || 0,
-      spent: 0,
-      progress: 0,
-      createdBy: user?.name || user?.email || 'Unknown User'
-    }
-
-    const result = await submitCreate(projectData, {
-      priority: 'high', // New projects are high priority
-      onSuccess: (project) => {
-        navigate(`/app/projects/${project.id}`)
-      },
-      onError: (error) => {
-        console.error('Failed to create project:', error)
+    if (isSubmitting) return
+    
+    setIsSubmitting(true)
+    
+    try {
+      const projectData = {
+        ...validatedData,
+        budget: parseFloat(validatedData.budget) || 0,
+        spent: 0,
+        progress: 0,
+        createdBy: user?.name || user?.email || 'Unknown User'
       }
-    })
 
-    return result
+      const result = await createProject(projectData, {
+        userId: user.id,
+        priority: 'high', // New projects are high priority
+        onSuccess: (project) => {
+          addNotification({
+            type: 'success',
+            title: 'Project Created',
+            message: `${project.name} has been created successfully`
+          })
+          navigate(`/app/projects/${project.id}`)
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Failed to Create Project',
+            message: error.message
+          })
+        }
+      })
+
+      return result
+    } catch (error) {
+      console.error('Failed to create project:', error)
+      addNotification({
+        type: 'error',
+        title: 'Failed to Create Project',
+        message: error.message
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   })
 
   const getFieldInputProps = (name) => {
     const baseProps = getFieldProps(name)
     return {
       ...baseProps,
-      className: `input-field ${errors[name] && touched[name] ? 'border-red-500 focus:ring-red-500' : ''}`,
+      className: `input-field ${
+        errors[name] && touched[name] ? 'border-red-500 focus:ring-red-500' : ''
+      }`,
       'aria-invalid': errors[name] && touched[name] ? 'true' : 'false',
       'aria-describedby': errors[name] && touched[name] ? `${name}-error` : undefined
     }
@@ -115,21 +142,10 @@ const CreateProjectScreen = () => {
 
       {/* Form */}
       <form onSubmit={onSubmit} className="space-y-6">
-        {/* Error Messages */}
-        {submitError && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            <div className="flex items-center">
-              <SafeIcon icon={FiAlertTriangle} className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
-              <p className="text-sm text-red-700 dark:text-red-400">{submitError}</p>
-            </div>
-          </div>
-        )}
-
         <div className="card">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Project Details
           </h2>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Project Name */}
             <div className="md:col-span-2">
@@ -264,7 +280,9 @@ const CreateProjectScreen = () => {
               <textarea
                 id="description"
                 placeholder="Describe the project scope and details"
-                className={`input-field min-h-[100px] ${errors.description && touched.description ? 'border-red-500 focus:ring-red-500' : ''}`}
+                className={`input-field min-h-[100px] ${
+                  errors.description && touched.description ? 'border-red-500 focus:ring-red-500' : ''
+                }`}
                 value={formData.description}
                 onChange={(e) => handleFieldChange('description', e.target.value)}
                 onBlur={() => setFieldTouched('description')}
@@ -278,7 +296,6 @@ const CreateProjectScreen = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Team Members
           </h2>
-
           <div className="flex items-center space-x-2 mb-4">
             <input
               type="text"
@@ -297,7 +314,7 @@ const CreateProjectScreen = () => {
               <SafeIcon icon={FiPlus} className="w-5 h-5" />
             </button>
           </div>
-
+          
           {formData.team.length > 0 ? (
             <div className="space-y-2">
               {formData.team.map((member, index) => (
