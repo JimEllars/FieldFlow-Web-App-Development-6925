@@ -85,7 +85,7 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
   const validateAll = useCallback(() => {
     const { isValid, errors: allErrors } = validateForm(values, validationRules)
     setErrors(allErrors)
-    
+
     // Mark all fields as touched
     setTouched(
       Object.keys(validationRules).reduce((acc, key) => {
@@ -127,25 +127,16 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
     setTouched({})
     setIsSubmitting(false)
     setSubmitAttempted(false)
-    
+
     // Clear any pending validation timeouts
     Object.values(validationTimeouts).forEach(clearTimeout)
     setValidationTimeouts({})
   }, [initialValues, validationTimeouts])
 
-  const setFormValues = useCallback((newValues) => {
-    setValues(prev => ({ ...prev, ...newValues }))
-  }, [])
-
-  const setFormErrors = useCallback((newErrors) => {
-    setErrors(prev => ({ ...prev, ...newErrors }))
-  }, [])
-
   // Computed values
   const isFormValid = Object.keys(errors).every(key => !errors[key])
   const hasErrors = Object.keys(errors).some(key => errors[key])
   const isDirty = JSON.stringify(values) !== JSON.stringify(initialValues)
-  const touchedFieldsCount = Object.keys(touched).filter(key => touched[key]).length
 
   // Get field props for easy integration with form inputs
   const getFieldProps = useCallback((name) => ({
@@ -158,15 +149,6 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
     hasError: !!(errors[name] && (touched[name] || submitAttempted))
   }), [values, errors, touched, submitAttempted, setValue, setFieldTouched])
 
-  // Get field state for conditional rendering
-  const getFieldState = useCallback((name) => ({
-    value: values[name],
-    error: errors[name],
-    touched: touched[name],
-    hasError: !!(errors[name] && (touched[name] || submitAttempted)),
-    isValid: !errors[name] && touched[name]
-  }), [values, errors, touched, submitAttempted])
-
   return {
     // Values and state
     values,
@@ -174,28 +156,24 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
     touched,
     isSubmitting,
     submitAttempted,
-    
+
     // Computed state
     isFormValid,
     hasErrors,
     isDirty,
-    touchedFieldsCount,
-    
+
     // Actions
     setValue,
     setFieldTouched,
     setFieldError,
     clearFieldError,
-    setFormValues,
-    setFormErrors,
     validateAll,
     handleSubmit,
     reset,
-    
+
     // Utilities
     getFieldProps,
-    getFieldState,
-    
+
     // Manual validation
     validateField: validateSingleField
   }

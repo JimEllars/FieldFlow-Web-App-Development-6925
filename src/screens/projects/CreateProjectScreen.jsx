@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useData } from '../../contexts/DataContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useOptimisticForm } from '../../components/common/OptimisticUI'
-import { useFormValidation, commonValidationRules } from '../../utils/validation'
+import { useFormValidation } from '../../hooks/useFormValidation'
+import { commonValidationRules } from '../../utils/validation'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 
@@ -35,8 +36,7 @@ const CreateProjectScreen = () => {
     setValue,
     setFieldTouched,
     handleSubmit,
-    getFieldProps,
-    getFieldState
+    getFieldProps
   } = useFormValidation(initialValues, commonValidationRules.project, {
     validateOnChange: true,
     validateOnBlur: true,
@@ -45,7 +45,6 @@ const CreateProjectScreen = () => {
 
   // Optimistic form submission with enhanced feedback
   const { isSubmitting, submitError, submitCreate, clearError } = useOptimisticForm('projects')
-
   const [teamMember, setTeamMember] = useState('')
 
   const handleFieldChange = (name, value) => {
@@ -55,7 +54,6 @@ const CreateProjectScreen = () => {
 
   const handleAddTeamMember = () => {
     if (!teamMember.trim()) return
-    
     const newTeam = [...formData.team, teamMember.trim()]
     handleFieldChange('team', newTeam)
     setTeamMember('')
@@ -131,7 +129,7 @@ const CreateProjectScreen = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Project Details
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Project Name */}
             <div className="md:col-span-2">
@@ -280,7 +278,7 @@ const CreateProjectScreen = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Team Members
           </h2>
-          
+
           <div className="flex items-center space-x-2 mb-4">
             <input
               type="text"
