@@ -1,16 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { immer } from 'zustand/middleware/immer'
 
 // Global app store using Zustand for better state management
 export const useAppStore = create(
   persist(
-    immer((set, get) => ({
+    (set, get) => ({
       // UI State
       theme: 'light',
       sidebarCollapsed: false,
       notifications: [],
-      
+
       // User Preferences
       preferences: {
         language: 'en',
@@ -23,7 +22,8 @@ export const useAppStore = create(
       performance: {
         lastSync: null,
         cacheSize: 0,
-        offlineActions: []
+        offlineActions: [],
+        metrics: {}
       },
 
       // Actions
@@ -54,9 +54,16 @@ export const useAppStore = create(
       }),
 
       trackPerformance: (metrics) => set((state) => {
-        state.performance = { ...state.performance, ...metrics }
+        state.performance = {
+          ...state.performance,
+          metrics: {
+            ...state.performance.metrics,
+            ...metrics,
+            lastUpdated: new Date().toISOString()
+          }
+        }
       })
-    })),
+    }),
     {
       name: 'fieldflow-app-store',
       partialize: (state) => ({

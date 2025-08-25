@@ -2,17 +2,16 @@ import React from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import { useOffline } from '../../contexts/OfflineContext'
+import SyncStatus from '../common/SyncStatus'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../common/SafeIcon'
 
-const { FiMenu, FiSun, FiMoon, FiWifi, FiWifiOff, FiRotateCw, FiTestTube } = FiIcons
+const { FiMenu, FiSun, FiMoon, FiTestTube } = FiIcons
 
 const TopHeader = ({ onMenuClick }) => {
   const location = useLocation()
   const { user, testMode } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const { isOnline, syncStatus, triggerSync } = useOffline()
 
   const getPageTitle = () => {
     const path = location.pathname
@@ -40,6 +39,7 @@ const TopHeader = ({ onMenuClick }) => {
           >
             <SafeIcon icon={FiMenu} className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           </button>
+          
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -63,20 +63,7 @@ const TopHeader = ({ onMenuClick }) => {
         {/* Right Side */}
         <div className="flex items-center space-x-2">
           {/* Sync Status */}
-          {!testMode && (
-            <button
-              onClick={triggerSync}
-              disabled={!isOnline || syncStatus === 'syncing'}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
-              title={isOnline ? 'Sync data' : 'Offline'}
-            >
-              {syncStatus === 'syncing' ? (
-                <SafeIcon icon={FiRotateCw} className="w-4 h-4 text-primary-600 animate-spin" />
-              ) : (
-                <SafeIcon icon={isOnline ? FiWifi : FiWifiOff} className={`w-4 h-4 ${isOnline ? 'text-green-600' : 'text-gray-400'}`} />
-              )}
-            </button>
-          )}
+          <SyncStatus />
 
           {/* Theme Toggle */}
           <button
@@ -84,7 +71,10 @@ const TopHeader = ({ onMenuClick }) => {
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
             aria-label="Toggle theme"
           >
-            <SafeIcon icon={theme === 'dark' ? FiSun : FiMoon} className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+            <SafeIcon 
+              icon={theme === 'dark' ? FiSun : FiMoon} 
+              className="w-4 h-4 text-gray-700 dark:text-gray-300" 
+            />
           </button>
 
           {/* User Avatar */}

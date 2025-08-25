@@ -8,15 +8,19 @@ const PerformanceMonitor = () => {
     // Track Core Web Vitals
     const trackWebVitals = async () => {
       try {
-        const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import('web-vitals')
-        
-        getCLS(metric => trackPerformance({ cls: metric.value }))
-        getFID(metric => trackPerformance({ fid: metric.value }))
-        getFCP(metric => trackPerformance({ fcp: metric.value }))
-        getLCP(metric => trackPerformance({ lcp: metric.value }))
-        getTTFB(metric => trackPerformance({ ttfb: metric.value }))
+        // Only load web-vitals in production or when explicitly enabled
+        if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_PERFORMANCE_MONITORING === 'true') {
+          const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import('web-vitals')
+          
+          getCLS(metric => trackPerformance({ cls: metric.value }))
+          getFID(metric => trackPerformance({ fid: metric.value }))
+          getFCP(metric => trackPerformance({ fcp: metric.value }))
+          getLCP(metric => trackPerformance({ lcp: metric.value }))
+          getTTFB(metric => trackPerformance({ ttfb: metric.value }))
+        }
       } catch (error) {
-        console.warn('Web Vitals not available:', error)
+        // Silently fail if web-vitals is not available
+        console.debug('Web Vitals not available:', error.message)
       }
     }
 
@@ -45,13 +49,28 @@ const PerformanceMonitor = () => {
       }
     }
 
+    // Track connection information
+    const trackConnection = () => {
+      if ('connection' in navigator) {
+        const connection = navigator.connection
+        trackPerformance({
+          connectionType: connection.effectiveType,
+          downlink: connection.downlink,
+          rtt: connection.rtt
+        })
+      }
+    }
+
+    // Initialize tracking
     trackWebVitals()
     trackMemoryUsage()
     trackPageLoad()
+    trackConnection()
 
     // Track performance every 30 seconds
     const interval = setInterval(() => {
       trackMemoryUsage()
+      trackConnection()
     }, 30000)
 
     return () => clearInterval(interval)
