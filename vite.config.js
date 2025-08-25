@@ -41,11 +41,6 @@ export default defineConfig(({ mode }) => ({
           ui: ['framer-motion', 'react-icons'],
           utils: ['date-fns', 'zustand']
         }
-      },
-      // Handle optional dependencies gracefully
-      external: (id) => {
-        // Don't externalize any dependencies - let them be bundled
-        return false
       }
     },
     chunkSizeWarningLimit: 1000
@@ -70,7 +65,7 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: [
       'react',
-      'react-dom',
+      'react-dom', 
       'react-router-dom',
       'framer-motion',
       'date-fns',

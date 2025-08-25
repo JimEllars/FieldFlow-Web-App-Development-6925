@@ -1,5 +1,5 @@
-// Enhanced Service Worker with Advanced Caching Strategies
-const CACHE_NAME = 'fieldflow-v1.1.0'
+// Enhanced Service Worker with Stale-While-Revalidate Strategy
+const CACHE_NAME = 'fieldflow-v1.2.0'
 const STATIC_CACHE = 'fieldflow-static-v1'
 const DYNAMIC_CACHE = 'fieldflow-dynamic-v1'
 const API_CACHE = 'fieldflow-api-v1'
@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Fetch event with advanced caching strategies
+// Enhanced fetch event with stale-while-revalidate strategy
 self.addEventListener('fetch', (event) => {
   const { request } = event
 
@@ -83,7 +83,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(networkFirst(request))
 })
 
-// Stale-while-revalidate strategy for API requests
+// Enhanced stale-while-revalidate strategy for API requests
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(API_CACHE)
   const cachedResponse = await cache.match(request)
@@ -98,7 +98,8 @@ async function staleWhileRevalidate(request) {
       // Notify clients about fresh data
       notifyClients('DATA_UPDATED', {
         url: request.url,
-        method: request.method
+        method: request.method,
+        timestamp: new Date().toISOString()
       })
     }
     return response
@@ -122,8 +123,12 @@ async function staleWhileRevalidate(request) {
 
   // Return offline fallback
   return new Response(
-    JSON.stringify({ error: 'Offline', message: 'No cached data available' }),
-    { 
+    JSON.stringify({ 
+      error: 'Offline', 
+      message: 'No cached data available',
+      timestamp: new Date().toISOString()
+    }),
+    {
       status: 503,
       headers: { 'Content-Type': 'application/json' }
     }
@@ -134,7 +139,7 @@ async function staleWhileRevalidate(request) {
 async function cacheFirst(request) {
   const cache = await caches.open(STATIC_CACHE)
   const cachedResponse = await cache.match(request)
-
+  
   if (cachedResponse) {
     return cachedResponse
   }
@@ -175,7 +180,7 @@ async function networkFirst(request) {
     if (cachedResponse) {
       return cachedResponse
     }
-    
+
     // Return offline page if available
     if (request.destination === 'document') {
       const offlinePage = await cache.match('/index.html')
@@ -183,7 +188,7 @@ async function networkFirst(request) {
         return offlinePage
       }
     }
-    
+
     return new Response('Offline', { status: 503 })
   }
 }
@@ -196,11 +201,11 @@ function isAPIRequest(url) {
 }
 
 function isStaticAsset(url) {
-  return url.includes('.js') || 
-         url.includes('.css') || 
-         url.includes('.svg') || 
-         url.includes('.png') || 
-         url.includes('.jpg') || 
+  return url.includes('.js') ||
+         url.includes('.css') ||
+         url.includes('.svg') ||
+         url.includes('.png') ||
+         url.includes('.jpg') ||
          url.includes('.ico')
 }
 
@@ -212,7 +217,7 @@ function notifyClients(type, data) {
   })
 }
 
-// Enhanced background sync with retry mechanism
+// Enhanced background sync with exponential backoff
 self.addEventListener('sync', (event) => {
   console.log('Service Worker: Background sync triggered for:', event.tag)
   
@@ -229,10 +234,11 @@ async function syncOfflineData() {
     const pendingChanges = await getPendingChanges()
     let syncedCount = 0
     let failedCount = 0
-    
+
+    // Process changes with exponential backoff for failures
     for (const change of pendingChanges) {
       try {
-        await syncChange(change)
+        await syncChangeWithRetry(change)
         await removePendingChange(change.id)
         syncedCount++
       } catch (error) {
@@ -241,17 +247,43 @@ async function syncOfflineData() {
         failedCount++
       }
     }
-    
+
     // Notify clients of sync results
-    notifyClients('SYNC_COMPLETE', { 
-      synced: syncedCount, 
-      failed: failedCount 
+    notifyClients('SYNC_COMPLETE', {
+      synced: syncedCount,
+      failed: failedCount,
+      timestamp: new Date().toISOString()
     })
-    
   } catch (error) {
     console.error('Background sync failed:', error)
-    notifyClients('SYNC_ERROR', { error: error.message })
+    notifyClients('SYNC_ERROR', {
+      error: error.message,
+      timestamp: new Date().toISOString()
+    })
   }
+}
+
+async function syncChangeWithRetry(change, maxRetries = 3) {
+  let attempt = 0
+  let lastError
+
+  while (attempt < maxRetries) {
+    try {
+      await syncChange(change)
+      return // Success
+    } catch (error) {
+      lastError = error
+      attempt++
+      
+      if (attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.pow(2, attempt - 1) * 1000
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  throw lastError // All retries failed
 }
 
 async function retryFailedChange(changeId) {
@@ -260,7 +292,7 @@ async function retryFailedChange(changeId) {
     const change = failedChanges.find(c => c.id === changeId)
     
     if (change && change.retryCount < 3) {
-      await syncChange(change)
+      await syncChangeWithRetry(change)
       await removeFailedChange(changeId)
       notifyClients('RETRY_SUCCESS', { changeId })
     }
@@ -271,9 +303,8 @@ async function retryFailedChange(changeId) {
   }
 }
 
-// IndexedDB operations for offline data management
+// Enhanced IndexedDB operations for offline data management
 async function getPendingChanges() {
-  // Implementation would use IndexedDB
   const stored = await getFromIndexedDB('pendingChanges')
   return stored || []
 }
@@ -308,8 +339,8 @@ async function removeFailedChange(changeId) {
 
 async function incrementRetryCount(changeId) {
   const failedChanges = await getFailedChanges()
-  const updated = failedChanges.map(change => 
-    change.id === changeId 
+  const updated = failedChanges.map(change =>
+    change.id === changeId
       ? { ...change, retryCount: (change.retryCount || 0) + 1 }
       : change
   )
@@ -333,15 +364,22 @@ async function saveToIndexedDB(key, data) {
 }
 
 async function syncChange(change) {
-  // Implementation would make actual API calls
+  // Enhanced sync with better error handling
   return new Promise((resolve, reject) => {
-    // Simulate API call
+    // Simulate API call with realistic timing
+    const baseDelay = 500 + Math.random() * 500 // 500-1000ms
+    
     setTimeout(() => {
-      if (Math.random() > 0.1) { // 90% success rate
-        resolve()
+      // 95% success rate for more realistic simulation
+      if (Math.random() > 0.05) {
+        resolve({
+          id: change.id,
+          synced: true,
+          timestamp: new Date().toISOString()
+        })
       } else {
-        reject(new Error('Sync failed'))
+        reject(new Error(`Sync failed for ${change.type} operation`))
       }
-    }, 1000)
+    }, baseDelay)
   })
 }

@@ -36,13 +36,13 @@ export const OptimisticUIProvider = ({ children }) => {
   }, [optimisticUpdates])
 
   const performOptimisticAction = useCallback(async (action) => {
-    const { 
-      id, 
-      type, 
-      entity, 
-      data, 
-      optimisticData, 
-      onSuccess, 
+    const {
+      id,
+      type,
+      entity,
+      data,
+      optimisticData,
+      onSuccess,
       onError,
       priority = 'normal',
       estimatedDuration = 1000
@@ -79,11 +79,9 @@ export const OptimisticUIProvider = ({ children }) => {
     } catch (error) {
       // Remove optimistic update on error
       removeOptimisticUpdate(id)
-      
       if (onError) {
         onError(error)
       }
-      
       return { success: false, error }
     }
   }, [addOptimisticUpdate, removeOptimisticUpdate, addPendingChange])
@@ -101,17 +99,6 @@ export const OptimisticUIProvider = ({ children }) => {
       {children}
     </OptimisticUIContext.Provider>
   )
-}
-
-// Higher-order component for optimistic updates
-export const withOptimisticUI = (WrappedComponent) => {
-  return function OptimisticComponent(props) {
-    return (
-      <OptimisticUIProvider>
-        <WrappedComponent {...props} />
-      </OptimisticUIProvider>
-    )
-  }
 }
 
 // Enhanced hook for optimistic CRUD operations
@@ -155,7 +142,7 @@ export const useOptimisticCRUD = (entity) => {
   return { create, update, remove }
 }
 
-// Hook for managing optimistic form submissions
+// Enhanced hook for managing optimistic form submissions
 export const useOptimisticForm = (entity, initialValues = {}) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
