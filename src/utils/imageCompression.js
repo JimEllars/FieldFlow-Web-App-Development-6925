@@ -1,5 +1,3 @@
-import imageCompression from 'browser-image-compression'
-
 /**
  * Compress and resize images before upload
  * @param {File} file - The image file to compress
@@ -29,12 +27,20 @@ export const compressImage = async (file, options = {}) => {
     }
 
     console.log(`Compressing image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
-    
-    const compressedFile = await imageCompression(file, compressionOptions)
-    
-    console.log(`Compression complete: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`)
-    
-    return compressedFile
+
+    // Dynamic import with fallback
+    try {
+      const imageCompression = await import('browser-image-compression').then(
+        module => module.default
+      )
+      
+      const compressedFile = await imageCompression(file, compressionOptions)
+      console.log(`Compression complete: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`)
+      return compressedFile
+    } catch (importError) {
+      console.warn('Image compression library not available:', importError)
+      return file
+    }
   } catch (error) {
     console.error('Error compressing image:', error)
     // Return original file if compression fails

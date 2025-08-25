@@ -5,22 +5,29 @@ const PerformanceMonitor = () => {
   const trackPerformance = useAppStore(state => state.trackPerformance)
 
   useEffect(() => {
-    // Track Core Web Vitals
+    // Track Core Web Vitals with better error handling
     const trackWebVitals = async () => {
       try {
         // Only load web-vitals in production or when explicitly enabled
         if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_PERFORMANCE_MONITORING === 'true') {
-          const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import('web-vitals')
+          // Dynamic import with error handling
+          const webVitals = await import('web-vitals').catch(() => null)
           
-          getCLS(metric => trackPerformance({ cls: metric.value }))
-          getFID(metric => trackPerformance({ fid: metric.value }))
-          getFCP(metric => trackPerformance({ fcp: metric.value }))
-          getLCP(metric => trackPerformance({ lcp: metric.value }))
-          getTTFB(metric => trackPerformance({ ttfb: metric.value }))
+          if (webVitals) {
+            const { getCLS, getFID, getFCP, getLCP, getTTFB } = webVitals
+            
+            getCLS(metric => trackPerformance({ cls: metric.value }))
+            getFID(metric => trackPerformance({ fid: metric.value }))
+            getFCP(metric => trackPerformance({ fcp: metric.value }))
+            getLCP(metric => trackPerformance({ lcp: metric.value }))
+            getTTFB(metric => trackPerformance({ ttfb: metric.value }))
+          } else {
+            console.debug('Web Vitals library not available')
+          }
         }
       } catch (error) {
         // Silently fail if web-vitals is not available
-        console.debug('Web Vitals not available:', error.message)
+        console.debug('Performance monitoring not available:', error.message)
       }
     }
 

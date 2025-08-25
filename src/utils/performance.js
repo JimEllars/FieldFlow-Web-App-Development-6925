@@ -1,5 +1,4 @@
 // Performance utilities for optimization
-
 export const debounce = (func, wait, immediate = false) => {
   let timeout
   return function executedFunction(...args) {
@@ -74,10 +73,10 @@ export const isLowEndDevice = () => {
 // Preload critical resources
 export const preloadCriticalResources = () => {
   const criticalResources = [
-    '/fieldflow-icon.svg',
+    '/fieldflow-icon.svg'
     // Add other critical resources
   ]
-  
+
   criticalResources.forEach(resource => {
     const link = document.createElement('link')
     link.rel = 'preload'

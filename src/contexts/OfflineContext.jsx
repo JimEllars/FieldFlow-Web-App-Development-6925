@@ -58,7 +58,7 @@ export const OfflineProvider = ({ children }) => {
 
     try {
       setSyncStatus('syncing')
-      
+
       // Get pending changes from localStorage
       const stored = localStorage.getItem('fieldflow-pending-changes')
       if (!stored) {
@@ -78,11 +78,11 @@ export const OfflineProvider = ({ children }) => {
       // Clear pending changes after successful sync
       localStorage.removeItem('fieldflow-pending-changes')
       setPendingChanges(0)
-      
+
       const now = new Date()
       setLastSync(now)
       localStorage.setItem('fieldflow-last-sync', now.toISOString())
-      
+
       setSyncStatus('idle')
     } catch (error) {
       console.error('Sync error:', error)
@@ -94,17 +94,17 @@ export const OfflineProvider = ({ children }) => {
     try {
       const stored = localStorage.getItem('fieldflow-pending-changes')
       const changes = stored ? JSON.parse(stored) : []
-      
+
       const newChange = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         ...change
       }
-      
+
       changes.push(newChange)
       localStorage.setItem('fieldflow-pending-changes', JSON.stringify(changes))
       setPendingChanges(changes.length)
-      
+
       // Try to sync if online
       if (isOnline) {
         triggerSync()

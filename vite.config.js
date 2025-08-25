@@ -41,6 +41,11 @@ export default defineConfig(({ mode }) => ({
           ui: ['framer-motion', 'react-icons'],
           utils: ['date-fns', 'zustand']
         }
+      },
+      // Handle optional dependencies gracefully
+      external: (id) => {
+        // Don't externalize any dependencies - let them be bundled
+        return false
       }
     },
     chunkSizeWarningLimit: 1000
@@ -59,5 +64,18 @@ export default defineConfig(({ mode }) => ({
   // Environment variables
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version)
+  },
+  
+  // Optimize dependencies
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'framer-motion',
+      'date-fns',
+      'zustand'
+    ],
+    exclude: ['web-vitals'] // Let this be loaded dynamically
   }
 }))

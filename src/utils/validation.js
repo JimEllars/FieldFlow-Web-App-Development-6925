@@ -1,5 +1,6 @@
-// Form validation utilities
+import { useState, useCallback } from 'react'
 
+// Form validation utilities
 export const validators = {
   required: (value) => {
     if (!value || (typeof value === 'string' && !value.trim())) {
@@ -120,7 +121,7 @@ export const validateForm = (formData, validationRules) => {
     const value = formData[fieldName]
     const rules = validationRules[fieldName]
     const error = validateField(value, rules)
-    
+
     if (error) {
       errors[fieldName] = error
       isValid = false
@@ -130,83 +131,18 @@ export const validateForm = (formData, validationRules) => {
   return { isValid, errors }
 }
 
-// Real-time validation hook
-export const useFormValidation = (initialValues, validationRules) => {
-  const [values, setValues] = useState(initialValues)
-  const [errors, setErrors] = useState({})
-  const [touched, setTouched] = useState({})
-
-  const validateSingleField = useCallback((name, value) => {
-    if (validationRules[name]) {
-      const error = validateField(value, validationRules[name])
-      setErrors(prev => ({ ...prev, [name]: error }))
-      return error
-    }
-    return null
-  }, [validationRules])
-
-  const setValue = useCallback((name, value) => {
-    setValues(prev => ({ ...prev, [name]: value }))
-    
-    // Validate if field has been touched
-    if (touched[name]) {
-      validateSingleField(name, value)
-    }
-  }, [touched, validateSingleField])
-
-  const setFieldTouched = useCallback((name, isTouched = true) => {
-    setTouched(prev => ({ ...prev, [name]: isTouched }))
-    
-    // Validate when field is touched for the first time
-    if (isTouched && !touched[name]) {
-      validateSingleField(name, values[name])
-    }
-  }, [touched, values, validateSingleField])
-
-  const validateAll = useCallback(() => {
-    const { isValid, errors: allErrors } = validateForm(values, validationRules)
-    setErrors(allErrors)
-    setTouched(Object.keys(validationRules).reduce((acc, key) => {
-      acc[key] = true
-      return acc
-    }, {}))
-    return isValid
-  }, [values, validationRules])
-
-  const reset = useCallback((newValues = initialValues) => {
-    setValues(newValues)
-    setErrors({})
-    setTouched({})
-  }, [initialValues])
-
-  const isFormValid = Object.keys(errors).every(key => !errors[key])
-
-  return {
-    values,
-    errors,
-    touched,
-    setValue,
-    setFieldTouched,
-    validateAll,
-    reset,
-    isFormValid
-  }
-}
-
 // Common validation rule sets
 export const commonValidationRules = {
   login: {
     email: [validators.required, validators.email],
     password: [validators.required]
   },
-
   register: {
     name: [validators.required, validators.minLength(2), validators.maxLength(50)],
     email: [validators.required, validators.email],
     company: [validators.required, validators.minLength(2), validators.maxLength(100)],
     password: [validators.required, validators.password]
   },
-
   project: {
     name: [validators.required, validators.minLength(3), validators.maxLength(100)],
     client: [validators.required, validators.minLength(2), validators.maxLength(100)],
@@ -214,14 +150,12 @@ export const commonValidationRules = {
     startDate: [validators.required, validators.date],
     endDate: [validators.required, validators.date]
   },
-
   task: {
     title: [validators.required, validators.minLength(3), validators.maxLength(100)],
     projectId: [validators.required],
     dueDate: [validators.required, validators.date],
     estimatedHours: [validators.positiveNumber]
   },
-
   profile: {
     name: [validators.required, validators.minLength(2), validators.maxLength(50)],
     company: [validators.required, validators.minLength(2), validators.maxLength(100)]

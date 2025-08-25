@@ -6,7 +6,6 @@ export const useServiceWorker = () => {
   const [isRegistered, setIsRegistered] = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [registration, setRegistration] = useState(null)
-  
   const addNotification = useAppStore(state => state.addNotification)
 
   useEffect(() => {
@@ -29,7 +28,6 @@ export const useServiceWorker = () => {
       // Listen for updates
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing
-        
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
@@ -49,7 +47,7 @@ export const useServiceWorker = () => {
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener('message', (event) => {
         const { type, data } = event.data || {}
-        
+
         switch (type) {
           case 'SYNC_COMPLETE':
             addNotification({
@@ -59,7 +57,6 @@ export const useServiceWorker = () => {
               duration: 3000
             })
             break
-            
           case 'SYNC_ERROR':
             addNotification({
               type: 'error',
@@ -68,7 +65,6 @@ export const useServiceWorker = () => {
               duration: 5000
             })
             break
-            
           default:
             break
         }
@@ -84,7 +80,6 @@ export const useServiceWorker = () => {
     if (registration && registration.waiting) {
       // Tell the waiting service worker to skip waiting and become active
       registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-      
       // Refresh the page to load the new version
       window.location.reload()
     }

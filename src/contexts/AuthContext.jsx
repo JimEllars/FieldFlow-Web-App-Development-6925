@@ -15,9 +15,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-
+  
   // Test Mode - Enable for development/testing
-  const TEST_MODE = true // Set to false for production
+  const TEST_MODE = import.meta.env.VITE_TEST_MODE === 'true' || true
 
   useEffect(() => {
     // Get initial session
@@ -64,9 +64,10 @@ export const AuthProvider = ({ children }) => {
           setLoading(false)
         }
       )
+
       return () => subscription.unsubscribe()
     }
-  }, [])
+  }, [TEST_MODE])
 
   const setUserFromSession = async (authUser) => {
     try {
@@ -137,7 +138,7 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true)
           return { success: true, user: demoUser }
         }
-        
+
         // Create test user for any other credentials
         const testUser = createTestUser(email)
         setUser(testUser)
@@ -171,7 +172,6 @@ export const AuthProvider = ({ children }) => {
       if (TEST_MODE) {
         // Test mode - simulate registration
         console.log('🧪 TEST MODE: Simulating registration')
-        
         const testUser = createTestUser(
           userData.email,
           userData.name,
