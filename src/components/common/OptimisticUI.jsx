@@ -79,9 +79,11 @@ export const OptimisticUIProvider = ({ children }) => {
     } catch (error) {
       // Remove optimistic update on error
       removeOptimisticUpdate(id)
+      
       if (onError) {
         onError(error)
       }
+      
       return { success: false, error }
     }
   }, [addOptimisticUpdate, removeOptimisticUpdate, addPendingChange])

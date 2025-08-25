@@ -1,8 +1,8 @@
 // Enhanced Service Worker with Stale-While-Revalidate Strategy
-const CACHE_NAME = 'fieldflow-v1.2.0'
-const STATIC_CACHE = 'fieldflow-static-v1'
-const DYNAMIC_CACHE = 'fieldflow-dynamic-v1'
-const API_CACHE = 'fieldflow-api-v1'
+const CACHE_NAME = 'fieldflow-v2.0.0'
+const STATIC_CACHE = 'fieldflow-static-v2'
+const DYNAMIC_CACHE = 'fieldflow-dynamic-v2'
+const API_CACHE = 'fieldflow-api-v2'
 
 // Static assets to cache
 const STATIC_ASSETS = [
@@ -12,10 +12,10 @@ const STATIC_ASSETS = [
   '/manifest.json'
 ]
 
-// API endpoints to cache with stale-while-revalidate strategy
+// API endpoints for stale-while-revalidate caching
 const API_ENDPOINTS = [
   '/rest/v1/projects_ff2024',
-  '/rest/v1/tasks_ff2024',
+  '/rest/v1/tasks_ff2024', 
   '/rest/v1/daily_logs_ff2024',
   '/rest/v1/time_entries_ff2024',
   '/rest/v1/documents_ff2024'
@@ -23,7 +23,7 @@ const API_ENDPOINTS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...')
+  console.log('Service Worker: Installing v2.0.0...')
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       console.log('Service Worker: Caching static assets')
@@ -35,7 +35,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...')
+  console.log('Service Worker: Activating v2.0.0...')
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -94,12 +94,13 @@ async function staleWhileRevalidate(request) {
       // Clone and cache the response
       const responseClone = response.clone()
       await cache.put(request, responseClone)
-      
+
       // Notify clients about fresh data
       notifyClients('DATA_UPDATED', {
         url: request.url,
         method: request.method,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        cacheHit: !!cachedResponse
       })
     }
     return response
@@ -112,21 +113,29 @@ async function staleWhileRevalidate(request) {
   if (cachedResponse) {
     // Network request continues in background
     networkPromise.catch(() => {}) // Prevent unhandled rejection
-    return cachedResponse
+    
+    // Add cache metadata to response headers
+    const responseWithMetadata = cachedResponse.clone()
+    responseWithMetadata.headers.set('X-Cache-Status', 'HIT')
+    responseWithMetadata.headers.set('X-Cache-Date', new Date().toISOString())
+    
+    return responseWithMetadata
   }
 
   // Wait for network if no cache available
   const networkResponse = await networkPromise
   if (networkResponse) {
+    networkResponse.headers.set('X-Cache-Status', 'MISS')
     return networkResponse
   }
 
   // Return offline fallback
   return new Response(
-    JSON.stringify({ 
-      error: 'Offline', 
-      message: 'No cached data available',
-      timestamp: new Date().toISOString()
+    JSON.stringify({
+      error: 'Offline',
+      message: 'No cached data available and network is unreachable',
+      timestamp: new Date().toISOString(),
+      offline: true
     }),
     {
       status: 503,
@@ -139,7 +148,7 @@ async function staleWhileRevalidate(request) {
 async function cacheFirst(request) {
   const cache = await caches.open(STATIC_CACHE)
   const cachedResponse = await cache.match(request)
-  
+
   if (cachedResponse) {
     return cachedResponse
   }
@@ -180,7 +189,7 @@ async function networkFirst(request) {
     if (cachedResponse) {
       return cachedResponse
     }
-
+    
     // Return offline page if available
     if (request.destination === 'document') {
       const offlinePage = await cache.match('/index.html')
@@ -188,7 +197,7 @@ async function networkFirst(request) {
         return offlinePage
       }
     }
-
+    
     return new Response('Offline', { status: 503 })
   }
 }
@@ -206,13 +215,21 @@ function isStaticAsset(url) {
          url.includes('.svg') ||
          url.includes('.png') ||
          url.includes('.jpg') ||
-         url.includes('.ico')
+         url.includes('.ico') ||
+         url.includes('.woff') ||
+         url.includes('.woff2')
 }
 
 function notifyClients(type, data) {
   self.clients.matchAll().then(clients => {
     clients.forEach(client => {
-      client.postMessage({ type, data })
+      client.postMessage({
+        type,
+        data: {
+          ...data,
+          serviceWorkerVersion: '2.0.0'
+        }
+      })
     })
   })
 }
@@ -238,11 +255,11 @@ async function syncOfflineData() {
     // Process changes with exponential backoff for failures
     for (const change of pendingChanges) {
       try {
-        await syncChangeWithRetry(change)
+        await syncChangeWithRetry(change, 3) // Max 3 retries
         await removePendingChange(change.id)
         syncedCount++
       } catch (error) {
-        console.error('Failed to sync change:', error)
+        console.error('Failed to sync change after retries:', error)
         await moveToFailedChanges(change, error.message)
         failedCount++
       }
@@ -254,6 +271,7 @@ async function syncOfflineData() {
       failed: failedCount,
       timestamp: new Date().toISOString()
     })
+
   } catch (error) {
     console.error('Background sync failed:', error)
     notifyClients('SYNC_ERROR', {
@@ -282,7 +300,7 @@ async function syncChangeWithRetry(change, maxRetries = 3) {
       }
     }
   }
-
+  
   throw lastError // All retries failed
 }
 
@@ -299,7 +317,10 @@ async function retryFailedChange(changeId) {
   } catch (error) {
     console.error('Retry failed:', error)
     await incrementRetryCount(changeId)
-    notifyClients('RETRY_FAILED', { changeId, error: error.message })
+    notifyClients('RETRY_FAILED', {
+      changeId,
+      error: error.message
+    })
   }
 }
 
@@ -347,39 +368,156 @@ async function incrementRetryCount(changeId) {
   await saveToIndexedDB('failedChanges', updated)
 }
 
-// Simple IndexedDB wrapper functions
+// Improved IndexedDB wrapper functions
 async function getFromIndexedDB(key) {
-  return new Promise((resolve) => {
-    // Simplified implementation - in production, use proper IndexedDB
-    const stored = localStorage.getItem(`sw-${key}`)
-    resolve(stored ? JSON.parse(stored) : null)
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('FieldFlowDB', 1)
+    
+    request.onerror = () => {
+      // Fallback to localStorage
+      const stored = localStorage.getItem(`sw-${key}`)
+      resolve(stored ? JSON.parse(stored) : null)
+    }
+    
+    request.onsuccess = (event) => {
+      const db = event.target.result
+      if (!db.objectStoreNames.contains('offlineData')) {
+        // Fallback to localStorage
+        const stored = localStorage.getItem(`sw-${key}`)
+        resolve(stored ? JSON.parse(stored) : null)
+        return
+      }
+      
+      const transaction = db.transaction(['offlineData'], 'readonly')
+      const store = transaction.objectStore('offlineData')
+      const getRequest = store.get(key)
+      
+      getRequest.onsuccess = () => {
+        resolve(getRequest.result ? getRequest.result.data : null)
+      }
+      
+      getRequest.onerror = () => {
+        // Fallback to localStorage
+        const stored = localStorage.getItem(`sw-${key}`)
+        resolve(stored ? JSON.parse(stored) : null)
+      }
+    }
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result
+      if (!db.objectStoreNames.contains('offlineData')) {
+        db.createObjectStore('offlineData', { keyPath: 'key' })
+      }
+    }
   })
 }
 
 async function saveToIndexedDB(key, data) {
-  return new Promise((resolve) => {
-    localStorage.setItem(`sw-${key}`, JSON.stringify(data))
-    resolve()
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('FieldFlowDB', 1)
+    
+    request.onerror = () => {
+      // Fallback to localStorage
+      localStorage.setItem(`sw-${key}`, JSON.stringify(data))
+      resolve()
+    }
+    
+    request.onsuccess = (event) => {
+      const db = event.target.result
+      if (!db.objectStoreNames.contains('offlineData')) {
+        // Fallback to localStorage
+        localStorage.setItem(`sw-${key}`, JSON.stringify(data))
+        resolve()
+        return
+      }
+      
+      const transaction = db.transaction(['offlineData'], 'readwrite')
+      const store = transaction.objectStore('offlineData')
+      const putRequest = store.put({ key, data, timestamp: Date.now() })
+      
+      putRequest.onsuccess = () => resolve()
+      putRequest.onerror = () => {
+        // Fallback to localStorage
+        localStorage.setItem(`sw-${key}`, JSON.stringify(data))
+        resolve()
+      }
+    }
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result
+      if (!db.objectStoreNames.contains('offlineData')) {
+        db.createObjectStore('offlineData', { keyPath: 'key' })
+      }
+    }
   })
 }
 
 async function syncChange(change) {
-  // Enhanced sync with better error handling
+  // Enhanced sync with better error handling and retry logic
   return new Promise((resolve, reject) => {
-    // Simulate API call with realistic timing
-    const baseDelay = 500 + Math.random() * 500 // 500-1000ms
+    // Simulate API call with realistic timing and error scenarios
+    const baseDelay = 300 + Math.random() * 400 // 300-700ms
     
     setTimeout(() => {
-      // 95% success rate for more realistic simulation
-      if (Math.random() > 0.05) {
+      // Simulate different error conditions for testing
+      const random = Math.random()
+      
+      if (random > 0.92) { // 8% failure rate
+        if (random > 0.96) {
+          reject(new Error('Network timeout - please check your connection'))
+        } else if (random > 0.94) {
+          reject(new Error('Server temporarily unavailable'))
+        } else {
+          reject(new Error('Authentication expired - please log in again'))
+        }
+      } else {
+        // Success
         resolve({
           id: change.id,
           synced: true,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          serverResponse: {
+            type: change.type,
+            entity: change.entity,
+            processed: true
+          }
         })
-      } else {
-        reject(new Error(`Sync failed for ${change.type} operation`))
       }
     }, baseDelay)
   })
+}
+
+// Cache management and cleanup
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.ports[0].postMessage(clearAllCaches())
+  } else if (event.data && event.data.type === 'GET_CACHE_SIZE') {
+    event.ports[0].postMessage(getCacheSize())
+  }
+})
+
+async function clearAllCaches() {
+  try {
+    const cacheNames = await caches.keys()
+    await Promise.all(cacheNames.map(name => caches.delete(name)))
+    return { success: true, message: 'All caches cleared successfully' }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+async function getCacheSize() {
+  try {
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+      const estimate = await navigator.storage.estimate()
+      return {
+        used: estimate.usage,
+        available: estimate.quota,
+        percentage: Math.round((estimate.usage / estimate.quota) * 100)
+      }
+    }
+    return { error: 'Storage API not supported' }
+  } catch (error) {
+    return { error: error.message }
+  }
 }

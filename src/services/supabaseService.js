@@ -9,7 +9,7 @@ class BaseService {
   // Enhanced error handling with specific error types
   handleError(error, operation = 'operation') {
     console.error(`${operation} failed for ${this.tableName}:`, error)
-    
+
     if (error.message?.includes('network')) {
       throw new Error(`Network error during ${operation}. Please check your connection.`)
     } else if (error.message?.includes('unauthorized') || error.code === 'PGRST301') {
@@ -26,7 +26,7 @@ class BaseService {
   async getAll(userId, options = {}) {
     try {
       const { orderBy = 'created_at', ascending = false, limit, filters = {} } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select('*')
@@ -148,20 +148,16 @@ class BaseService {
   async updateMany(updates) {
     try {
       const results = []
-      
       // Process updates in batches of 10 for better performance
       const batchSize = 10
       for (let i = 0; i < updates.length; i += batchSize) {
         const batch = updates.slice(i, i + batchSize)
-        
         const batchPromises = batch.map(({ id, data }) => 
           this.update(id, data)
         )
-        
         const batchResults = await Promise.all(batchPromises)
         results.push(...batchResults)
       }
-      
       return results
     } catch (error) {
       this.handleError(error, 'batch update')
@@ -195,7 +191,7 @@ export class ProjectService extends BaseService {
         const projectTasks = (taskStats || []).filter(t => t.project_id === project.id)
         const taskCount = projectTasks.length
         const completedTasks = projectTasks.filter(t => t.status === 'completed').length
-        
+
         return {
           ...project,
           taskCount,
@@ -215,11 +211,7 @@ export class ProjectService extends BaseService {
   }
 
   async getRecentProjects(userId, limit = 5) {
-    return this.getAll(userId, { 
-      orderBy: 'updated_at', 
-      ascending: false, 
-      limit 
-    })
+    return this.getAll(userId, { orderBy: 'updated_at', ascending: false, limit })
   }
 
   async searchProjects(userId, searchTerm) {
@@ -248,7 +240,7 @@ export class TaskService extends BaseService {
   async getTasksByProject(projectId, options = {}) {
     try {
       const { status, priority, assignee, orderBy = 'due_date' } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select('*')
@@ -297,7 +289,7 @@ export class TaskService extends BaseService {
   async getOverdueTasks(userId) {
     try {
       const today = new Date().toISOString().split('T')[0]
-      
+
       const { data, error } = await supabase
         .from(this.tableName)
         .select(`
@@ -323,7 +315,7 @@ export class TaskService extends BaseService {
     if (status === 'completed') {
       updateData.completed_at = new Date().toISOString()
     }
-    
+
     return this.update(taskId, updateData)
   }
 
@@ -357,7 +349,7 @@ export class DailyLogService extends BaseService {
   async getLogsByProject(projectId, options = {}) {
     try {
       const { limit, startDate, endDate } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select('*')
@@ -426,7 +418,7 @@ export class TimeEntryService extends BaseService {
   async getEntriesByProject(projectId, options = {}) {
     try {
       const { startDate, endDate, userId } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select('*')
@@ -449,7 +441,7 @@ export class TimeEntryService extends BaseService {
   async getTotalHoursByProject(projectId, options = {}) {
     try {
       const { startDate, endDate, userId } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select('total_hours')
@@ -471,7 +463,7 @@ export class TimeEntryService extends BaseService {
   async getTimeEntriesByUser(userId, options = {}) {
     try {
       const { startDate, endDate, projectId, limit } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select(`
@@ -528,7 +520,7 @@ export class DocumentService extends BaseService {
   async getDocumentsByProject(projectId, options = {}) {
     try {
       const { category, type, limit } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select('*')
@@ -551,13 +543,10 @@ export class DocumentService extends BaseService {
   async uploadFile(file, filePath, options = {}) {
     try {
       const { cacheControl = '3600', upsert = false } = options
-      
+
       const { data, error } = await supabase.storage
         .from('fieldflow-documents')
-        .upload(filePath, file, {
-          cacheControl,
-          upsert
-        })
+        .upload(filePath, file, { cacheControl, upsert })
 
       if (error) this.handleError(error, 'upload file')
       return data
@@ -594,7 +583,7 @@ export class DocumentService extends BaseService {
   async searchDocuments(userId, searchTerm, options = {}) {
     try {
       const { projectId, category, type } = options
-      
+
       let query = supabase
         .from(this.tableName)
         .select(`

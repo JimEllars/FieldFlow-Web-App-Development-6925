@@ -53,7 +53,7 @@ export const isLowEndDevice = () => {
   if ('memory' in navigator && navigator.memory.deviceMemory < 4) {
     return true
   }
-  
+
   // Check connection
   if ('connection' in navigator) {
     const conn = navigator.connection
@@ -61,12 +61,12 @@ export const isLowEndDevice = () => {
       return true
     }
   }
-  
+
   // Check hardware concurrency
   if (navigator.hardwareConcurrency < 4) {
     return true
   }
-  
+
   return false
 }
 
@@ -92,7 +92,7 @@ export const analyzeBundleSize = () => {
     console.log('Bundle analysis is only available in production build')
     return
   }
-  
+
   // This would integrate with bundle analyzer
   console.log('Use `npm run analyze` to analyze bundle size')
 }

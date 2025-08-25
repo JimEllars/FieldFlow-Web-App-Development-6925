@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-// Form validation utilities
+// Enhanced form validation utilities with comprehensive rules
 export const validators = {
   required: (value) => {
     if (!value || (typeof value === 'string' && !value.trim())) {
@@ -98,6 +98,102 @@ export const validators = {
       }
     }
     return null
+  },
+
+  pastDate: (value) => {
+    if (value) {
+      const date = new Date(value)
+      const today = new Date()
+      today.setHours(23, 59, 59, 999)
+      if (date > today) {
+        return 'Date must be in the past'
+      }
+    }
+    return null
+  },
+
+  dateRange: (startDate) => (endDate) => {
+    if (startDate && endDate) {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      if (end <= start) {
+        return 'End date must be after start date'
+      }
+    }
+    return null
+  },
+
+  budget: (value) => {
+    const numValue = Number(value)
+    if (value && (isNaN(numValue) || numValue < 0)) {
+      return 'Budget must be a valid positive number'
+    }
+    if (numValue > 10000000) {
+      return 'Budget cannot exceed $10,000,000'
+    }
+    return null
+  },
+
+  projectName: (value) => {
+    if (!value || !value.trim()) {
+      return 'Project name is required'
+    }
+    if (value.length < 3) {
+      return 'Project name must be at least 3 characters long'
+    }
+    if (value.length > 100) {
+      return 'Project name cannot exceed 100 characters'
+    }
+    if (!/^[a-zA-Z0-9\s\-_.,()]+$/.test(value)) {
+      return 'Project name contains invalid characters'
+    }
+    return null
+  },
+
+  clientName: (value) => {
+    if (!value || !value.trim()) {
+      return 'Client name is required'
+    }
+    if (value.length < 2) {
+      return 'Client name must be at least 2 characters long'
+    }
+    if (value.length > 100) {
+      return 'Client name cannot exceed 100 characters'
+    }
+    return null
+  },
+
+  address: (value) => {
+    if (value && value.length > 200) {
+      return 'Address cannot exceed 200 characters'
+    }
+    return null
+  },
+
+  taskTitle: (value) => {
+    if (!value || !value.trim()) {
+      return 'Task title is required'
+    }
+    if (value.length < 3) {
+      return 'Task title must be at least 3 characters long'
+    }
+    if (value.length > 100) {
+      return 'Task title cannot exceed 100 characters'
+    }
+    return null
+  },
+
+  estimatedHours: (value) => {
+    if (value) {
+      const numValue = Number(value)
+      if (isNaN(numValue) || numValue < 0) {
+        return 'Estimated hours must be a positive number'
+      }
+      if (numValue > 1000) {
+        return 'Estimated hours cannot exceed 1000'
+      }
+    }
+    return null
   }
 }
 
@@ -158,10 +254,7 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
   const validateSingleField = useCallback((name, value) => {
     if (validationRules[name]) {
       const error = validateField(value, validationRules[name])
-      setErrors(prev => ({
-        ...prev,
-        [name]: error
-      }))
+      setErrors(prev => ({ ...prev, [name]: error }))
       return error
     }
     return null
@@ -178,17 +271,11 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
       validateSingleField(name, value)
     }, debounceMs)
 
-    setValidationTimeouts(prev => ({
-      ...prev,
-      [name]: timeoutId
-    }))
+    setValidationTimeouts(prev => ({ ...prev, [name]: timeoutId }))
   }, [validateSingleField, debounceMs, validationTimeouts])
 
   const setValue = useCallback((name, value) => {
-    setValues(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setValues(prev => ({ ...prev, [name]: value }))
 
     // Validate on change if enabled and field has been touched or submit attempted
     if (validateOnChange && (touched[name] || submitAttempted)) {
@@ -201,10 +288,7 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
   }, [validateOnChange, touched, submitAttempted, debouncedValidation, validateSingleField, debounceMs])
 
   const setFieldTouched = useCallback((name, isTouched = true) => {
-    setTouched(prev => ({
-      ...prev,
-      [name]: isTouched
-    }))
+    setTouched(prev => ({ ...prev, [name]: isTouched }))
 
     // Validate on blur if enabled and field is being touched
     if (validateOnBlur && isTouched && !touched[name]) {
@@ -213,10 +297,7 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
   }, [validateOnBlur, touched, values, validateSingleField])
 
   const setFieldError = useCallback((name, error) => {
-    setErrors(prev => ({
-      ...prev,
-      [name]: error
-    }))
+    setErrors(prev => ({ ...prev, [name]: error }))
   }, [])
 
   const clearFieldError = useCallback((name) => {
@@ -279,17 +360,11 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
   }, [initialValues, validationTimeouts])
 
   const setFormValues = useCallback((newValues) => {
-    setValues(prev => ({
-      ...prev,
-      ...newValues
-    }))
+    setValues(prev => ({ ...prev, ...newValues }))
   }, [])
 
   const setFormErrors = useCallback((newErrors) => {
-    setErrors(prev => ({
-      ...prev,
-      ...newErrors
-    }))
+    setErrors(prev => ({ ...prev, ...newErrors }))
   }, [])
 
   // Computed values
@@ -352,7 +427,7 @@ export const useFormValidation = (initialValues, validationRules, options = {}) 
   }
 }
 
-// Common validation rule sets
+// Enhanced validation rule sets for different forms
 export const commonValidationRules = {
   login: {
     email: [validators.required, validators.email],
@@ -367,23 +442,44 @@ export const commonValidationRules = {
   },
 
   project: {
-    name: [validators.required, validators.minLength(3), validators.maxLength(100)],
-    client: [validators.required, validators.minLength(2), validators.maxLength(100)],
-    budget: [validators.positiveNumber],
+    name: [validators.projectName],
+    client: [validators.clientName],
+    budget: [validators.budget],
     startDate: [validators.required, validators.date],
-    endDate: [validators.required, validators.date]
+    endDate: [validators.required, validators.date],
+    address: [validators.address],
+    description: [validators.maxLength(1000)]
   },
 
   task: {
-    title: [validators.required, validators.minLength(3), validators.maxLength(100)],
+    title: [validators.taskTitle],
     projectId: [validators.required],
     dueDate: [validators.required, validators.date],
-    estimatedHours: [validators.positiveNumber]
+    estimatedHours: [validators.estimatedHours],
+    assignee: [validators.required, validators.minLength(2)],
+    description: [validators.maxLength(500)]
   },
 
   profile: {
     name: [validators.required, validators.minLength(2), validators.maxLength(50)],
-    company: [validators.required, validators.minLength(2), validators.maxLength(100)]
+    company: [validators.required, validators.minLength(2), validators.maxLength(100)],
+    phone: [validators.phone]
+  },
+
+  dailyLog: {
+    projectId: [validators.required],
+    date: [validators.required, validators.date],
+    workCompleted: [validators.required, validators.minLength(10), validators.maxLength(2000)],
+    weather: [validators.maxLength(100)],
+    notes: [validators.maxLength(1000)]
+  },
+
+  timeEntry: {
+    projectId: [validators.required],
+    date: [validators.required, validators.date],
+    clockIn: [validators.required],
+    clockOut: [validators.required],
+    description: [validators.maxLength(500)]
   }
 }
 

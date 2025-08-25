@@ -87,8 +87,8 @@ function App() {
                           </Route>
 
                           {/* Protected App Routes */}
-                          <Route
-                            path="/app"
+                          <Route 
+                            path="/app" 
                             element={
                               <ProtectedRoute>
                                 <AppLayout />

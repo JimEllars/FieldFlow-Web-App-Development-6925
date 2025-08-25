@@ -36,6 +36,7 @@ export const compressImage = async (file, options = {}) => {
       
       const compressedFile = await imageCompression(file, compressionOptions)
       console.log(`Compression complete: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`)
+      
       return compressedFile
     } catch (importError) {
       console.warn('Image compression library not available:', importError)

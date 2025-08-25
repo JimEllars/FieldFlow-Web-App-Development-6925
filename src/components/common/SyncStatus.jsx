@@ -4,21 +4,22 @@ import { useOfflineStore } from '../../stores/offlineStore'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from './SafeIcon'
 
-const { FiWifi, FiWifiOff, FiRotateCw, FiCheckCircle, FiAlertCircle, FiClock, FiAlertTriangle, FiInfo, FiX } = FiIcons
+const { FiWifi, FiWifiOff, FiRotateCw, FiCheckCircle, FiAlertCircle, FiClock, FiAlertTriangle, FiInfo, FiX, FiRefreshCw, FiTrash2 } = FiIcons
 
 const SyncStatus = ({ className = '', showDetails = false }) => {
   const [showFailedChanges, setShowFailedChanges] = useState(false)
-  const { 
-    isOnline, 
-    syncInProgress, 
-    pendingChanges, 
-    failedChanges, 
-    lastSync, 
-    processPendingChanges, 
+  const {
+    isOnline,
+    syncInProgress,
+    pendingChanges,
+    failedChanges,
+    lastSync,
+    processPendingChanges,
     retryFailedChange,
     retryAllFailedChanges,
     clearFailedChanges,
-    getSyncStatus 
+    forceSyncAll,
+    getSyncStatus
   } = useOfflineStore()
 
   const syncStatus = getSyncStatus()
@@ -26,6 +27,11 @@ const SyncStatus = ({ className = '', showDetails = false }) => {
   const handleRetrySync = async () => {
     if (syncInProgress) return
     await processPendingChanges()
+  }
+
+  const handleForceSync = async () => {
+    if (syncInProgress) return
+    await forceSyncAll()
   }
 
   const handleRetryAll = () => {
@@ -151,12 +157,12 @@ const SyncStatus = ({ className = '', showDetails = false }) => {
 
         {showDetails && syncStatus.syncStats && (
           <div className="ml-2 text-xs opacity-75">
-            ({syncStatus.syncStats.totalSynced} synced, {syncStatus.syncStats.totalFailed} failed)
+            ({syncStatus.syncStats.totalSynced} synced, {syncStatus.syncStats.totalFailed} failed, {syncStatus.syncStats.successRate}% success)
           </div>
         )}
       </motion.div>
 
-      {/* Failed Changes Modal */}
+      {/* Enhanced Failed Changes Modal */}
       <AnimatePresence>
         {showFailedChanges && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -203,9 +209,48 @@ const SyncStatus = ({ className = '', showDetails = false }) => {
                     </button>
                   </div>
 
+                  {/* Sync Statistics */}
+                  {syncStatus.syncStats && (
+                    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        Sync Statistics
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Success Rate:</span>
+                          <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">
+                            {syncStatus.syncStats.successRate}%
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Avg Sync Time:</span>
+                          <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">
+                            {Math.round(syncStatus.syncStats.averageSyncTime)}ms
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Total Synced:</span>
+                          <span className="ml-2 font-medium text-green-600 dark:text-green-400">
+                            {syncStatus.syncStats.totalSynced}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Total Failed:</span>
+                          <span className="ml-2 font-medium text-red-600 dark:text-red-400">
+                            {syncStatus.syncStats.totalFailed}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Failed Changes List */}
                   <div className="max-h-64 overflow-y-auto space-y-2">
                     {failedChanges.map((change, index) => (
-                      <div key={change.id} className="p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800">
+                      <div
+                        key={change.id}
+                        className="p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800"
+                      >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
@@ -215,6 +260,11 @@ const SyncStatus = ({ className = '', showDetails = false }) => {
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
                                 Retry {change.retryCount}/3
                               </span>
+                              {change.priority === 'high' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+                                  High Priority
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-red-700 dark:text-red-400 mt-1">
                               {change.error}
@@ -226,8 +276,9 @@ const SyncStatus = ({ className = '', showDetails = false }) => {
                           {change.retryCount < 3 && (
                             <button
                               onClick={() => retryFailedChange(change.id)}
-                              className="ml-2 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                              className="ml-2 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center"
                             >
+                              <SafeIcon icon={FiRefreshCw} className="w-3 h-3 mr-1" />
                               Retry
                             </button>
                           )}
@@ -236,18 +287,30 @@ const SyncStatus = ({ className = '', showDetails = false }) => {
                     ))}
                   </div>
 
+                  {/* Action Buttons */}
                   <div className="mt-6 flex justify-between">
                     <div className="flex space-x-2">
                       <button
                         onClick={handleRetryAll}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                        disabled={syncInProgress}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center"
                       >
+                        <SafeIcon icon={FiRefreshCw} className="w-4 h-4 mr-2" />
                         Retry All
                       </button>
                       <button
-                        onClick={handleClearFailed}
-                        className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
+                        onClick={handleForceSync}
+                        disabled={syncInProgress}
+                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center"
                       >
+                        <SafeIcon icon={FiRotateCw} className={`w-4 h-4 mr-2 ${syncInProgress ? 'animate-spin' : ''}`} />
+                        Force Sync All
+                      </button>
+                      <button
+                        onClick={handleClearFailed}
+                        className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 flex items-center"
+                      >
+                        <SafeIcon icon={FiTrash2} className="w-4 h-4 mr-2" />
                         Clear All
                       </button>
                     </div>

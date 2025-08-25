@@ -7,14 +7,14 @@ import { useFormValidation, commonValidationRules } from '../../utils/validation
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 
-const { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiCheckCircle } = FiIcons
+const { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiCheckCircle, FiAlertTriangle } = FiIcons
 
 const CreateProjectScreen = () => {
   const navigate = useNavigate()
   const { createProject } = useData()
   const { user } = useAuth()
-  
-  // Form state with validation
+
+  // Form state with enhanced validation
   const initialValues = {
     name: '',
     description: '',
@@ -34,16 +34,17 @@ const CreateProjectScreen = () => {
     isFormValid,
     setValue,
     setFieldTouched,
-    handleSubmit
-  } = useFormValidation(initialValues, commonValidationRules.project)
+    handleSubmit,
+    getFieldProps,
+    getFieldState
+  } = useFormValidation(initialValues, commonValidationRules.project, {
+    validateOnChange: true,
+    validateOnBlur: true,
+    debounceMs: 300
+  })
 
-  // Optimistic form submission
-  const {
-    isSubmitting,
-    submitError,
-    submitCreate,
-    clearError
-  } = useOptimisticForm('projects')
+  // Optimistic form submission with enhanced feedback
+  const { isSubmitting, submitError, submitCreate, clearError } = useOptimisticForm('projects')
 
   const [teamMember, setTeamMember] = useState('')
 
@@ -70,28 +71,32 @@ const CreateProjectScreen = () => {
       ...validatedData,
       budget: parseFloat(validatedData.budget) || 0,
       spent: 0,
-      progress: 0
+      progress: 0,
+      createdBy: user?.name || user?.email || 'Unknown User'
     }
 
     const result = await submitCreate(projectData, {
       priority: 'high', // New projects are high priority
       onSuccess: (project) => {
         navigate(`/app/projects/${project.id}`)
+      },
+      onError: (error) => {
+        console.error('Failed to create project:', error)
       }
     })
 
     return result
   })
 
-  const getFieldProps = (name) => ({
-    name,
-    value: formData[name] || '',
-    onChange: (e) => handleFieldChange(name, e.target.value),
-    onBlur: () => setFieldTouched(name),
-    className: `input-field ${errors[name] && touched[name] ? 'border-red-500 focus:ring-red-500' : ''}`,
-    'aria-invalid': errors[name] && touched[name] ? 'true' : 'false',
-    'aria-describedby': errors[name] && touched[name] ? `${name}-error` : undefined
-  })
+  const getFieldInputProps = (name) => {
+    const baseProps = getFieldProps(name)
+    return {
+      ...baseProps,
+      className: `input-field ${errors[name] && touched[name] ? 'border-red-500 focus:ring-red-500' : ''}`,
+      'aria-invalid': errors[name] && touched[name] ? 'true' : 'false',
+      'aria-describedby': errors[name] && touched[name] ? `${name}-error` : undefined
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
@@ -115,7 +120,10 @@ const CreateProjectScreen = () => {
         {/* Error Messages */}
         {submitError && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            <p className="text-sm text-red-700 dark:text-red-400">{submitError}</p>
+            <div className="flex items-center">
+              <SafeIcon icon={FiAlertTriangle} className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+              <p className="text-sm text-red-700 dark:text-red-400">{submitError}</p>
+            </div>
           </div>
         )}
 
@@ -135,10 +143,11 @@ const CreateProjectScreen = () => {
                 type="text"
                 placeholder="Enter project name"
                 required
-                {...getFieldProps('name')}
+                {...getFieldInputProps('name')}
               />
               {errors.name && touched.name && (
-                <p id="name-error" className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p id="name-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
                   {errors.name}
                 </p>
               )}
@@ -154,10 +163,11 @@ const CreateProjectScreen = () => {
                 type="text"
                 placeholder="Enter client name"
                 required
-                {...getFieldProps('client')}
+                {...getFieldInputProps('client')}
               />
               {errors.client && touched.client && (
-                <p id="client-error" className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p id="client-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
                   {errors.client}
                 </p>
               )}
@@ -168,10 +178,7 @@ const CreateProjectScreen = () => {
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Status
               </label>
-              <select
-                id="status"
-                {...getFieldProps('status')}
-              >
+              <select id="status" {...getFieldInputProps('status')}>
                 <option value="planning">Planning</option>
                 <option value="active">Active</option>
                 <option value="on-hold">On Hold</option>
@@ -188,10 +195,11 @@ const CreateProjectScreen = () => {
                 id="startDate"
                 type="date"
                 required
-                {...getFieldProps('startDate')}
+                {...getFieldInputProps('startDate')}
               />
               {errors.startDate && touched.startDate && (
-                <p id="startDate-error" className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p id="startDate-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
                   {errors.startDate}
                 </p>
               )}
@@ -206,10 +214,11 @@ const CreateProjectScreen = () => {
                 id="endDate"
                 type="date"
                 required
-                {...getFieldProps('endDate')}
+                {...getFieldInputProps('endDate')}
               />
               {errors.endDate && touched.endDate && (
-                <p id="endDate-error" className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p id="endDate-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
                   {errors.endDate}
                 </p>
               )}
@@ -226,10 +235,11 @@ const CreateProjectScreen = () => {
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                {...getFieldProps('budget')}
+                {...getFieldInputProps('budget')}
               />
               {errors.budget && touched.budget && (
-                <p id="budget-error" className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p id="budget-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
                   {errors.budget}
                 </p>
               )}
@@ -244,7 +254,7 @@ const CreateProjectScreen = () => {
                 id="address"
                 type="text"
                 placeholder="Enter project address"
-                {...getFieldProps('address')}
+                {...getFieldInputProps('address')}
               />
             </div>
 
