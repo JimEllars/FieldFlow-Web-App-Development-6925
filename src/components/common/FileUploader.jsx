@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { compressImage } from '../../utils/imageCompression'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from './SafeIcon'
 
-const { FiUpload, FiX, FiFile, FiImage, FiFileText, FiCheck, FiAlertTriangle } = FiIcons
+const { FiUpload, FiX, FiFile, FiImage, FiFileText, FiCheck, FiAlertTriangle, FiCompress } = FiIcons
 
 const FileUploader = ({
   projectId,
@@ -15,7 +16,7 @@ const FileUploader = ({
   multiple = false,
   category = 'general'
 }) => {
-  const { user } = useAuth()
+  const { user, testMode } = useAuth()
   const [uploading, setUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState([])
@@ -60,52 +61,137 @@ const FileUploader = ({
     return null
   }
 
-  const handleFileSelect = (files) => {
+  const handleFileSelect = async (files) => {
     const fileArray = Array.from(files)
-    const validFiles = []
+    const processedFiles = []
     const errors = []
 
-    fileArray.forEach(file => {
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i]
       const error = validateFile(file)
+      
       if (error) {
         errors.push(`${file.name}: ${error}`)
-      } else {
-        validFiles.push(file)
+        continue
       }
-    })
+
+      let processedFile = file
+      let compressionInfo = null
+
+      // Auto-compress images
+      if (file.type.startsWith('image/')) {
+        try {
+          setUploadProgress(prev => ({
+            ...prev,
+            [`temp-${i}`]: { progress: 0, status: 'compressing', fileName: file.name }
+          }))
+
+          const compressedFile = await compressImage(file, {
+            maxSizeMB: 2,
+            maxWidthOrHeight: 1920,
+            quality: 0.8
+          })
+
+          if (compressedFile.size < file.size) {
+            processedFile = compressedFile
+            compressionInfo = {
+              originalSize: file.size,
+              compressedSize: compressedFile.size,
+              compressionRatio: ((file.size - compressedFile.size) / file.size * 100).toFixed(1)
+            }
+          }
+
+          setUploadProgress(prev => {
+            const newProgress = { ...prev }
+            delete newProgress[`temp-${i}`]
+            return newProgress
+          })
+
+        } catch (compressionError) {
+          console.error('Compression failed:', compressionError)
+          // Continue with original file
+        }
+      }
+
+      processedFiles.push({
+        file: processedFile,
+        originalFile: file,
+        compressionInfo,
+        id: `file-${Date.now()}-${i}`
+      })
+    }
 
     if (errors.length > 0) {
       onUploadError?.(errors.join('\n'))
-      return
     }
 
-    if (!multiple && validFiles.length > 1) {
+    if (!multiple && processedFiles.length > 1) {
       onUploadError?.('Please select only one file')
       return
     }
 
-    setSelectedFiles(validFiles)
+    setSelectedFiles(processedFiles)
   }
 
-  const uploadFile = async (file, index) => {
+  const uploadFile = async (fileData, index) => {
+    const { file, originalFile, compressionInfo, id } = fileData
+
     try {
       // Generate unique filename
-      const fileExt = file.name.split('.').pop()
+      const fileExt = originalFile.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
       const filePath = `${user.id}/${projectId}/${category}/${fileName}`
 
       // Create upload progress tracking
       setUploadProgress(prev => ({
         ...prev,
-        [index]: { progress: 0, status: 'uploading' }
+        [index]: { progress: 0, status: 'uploading', fileName: originalFile.name }
       }))
 
-      // Upload file to Supabase Storage
+      if (testMode) {
+        // Test mode - simulate upload with progress
+        for (let progress = 0; progress <= 100; progress += 20) {
+          setUploadProgress(prev => ({
+            ...prev,
+            [index]: { progress, status: 'uploading', fileName: originalFile.name }
+          }))
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+
+        // Simulate successful upload
+        const mockResult = {
+          id: `doc-${Date.now()}-${index}`,
+          name: originalFile.name,
+          type: fileExt.toLowerCase(),
+          size: formatFileSize(file.size),
+          category: category,
+          url: URL.createObjectURL(file),
+          uploadedBy: user.name || user.email,
+          uploadedAt: new Date().toISOString(),
+          compressionInfo
+        }
+
+        setUploadProgress(prev => ({
+          ...prev,
+          [index]: { progress: 100, status: 'completed', fileName: originalFile.name }
+        }))
+
+        return mockResult
+      }
+
+      // Production mode - upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('fieldflow-documents')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          onUploadProgress: (progress) => {
+            const percentage = Math.round((progress.loaded / progress.total) * 100)
+            setUploadProgress(prev => ({
+              ...prev,
+              [index]: { progress: percentage, status: 'uploading', fileName: originalFile.name }
+            }))
+          }
         })
 
       if (uploadError) throw uploadError
@@ -121,12 +207,18 @@ const FileUploader = ({
         .insert({
           project_id: projectId,
           user_id: user.id,
-          name: file.name,
+          name: originalFile.name,
           type: fileExt.toLowerCase(),
           size: formatFileSize(file.size),
           category: category,
           url: publicUrl,
-          uploaded_by: user.name || user.email
+          uploaded_by: user.name || user.email,
+          metadata: compressionInfo ? {
+            compressed: true,
+            originalSize: compressionInfo.originalSize,
+            compressedSize: compressionInfo.compressedSize,
+            compressionRatio: compressionInfo.compressionRatio
+          } : null
         })
         .select()
         .single()
@@ -136,25 +228,26 @@ const FileUploader = ({
       // Update progress
       setUploadProgress(prev => ({
         ...prev,
-        [index]: { progress: 100, status: 'completed' }
+        [index]: { progress: 100, status: 'completed', fileName: originalFile.name }
       }))
 
       return {
         id: docData.id,
-        name: file.name,
+        name: originalFile.name,
         type: fileExt.toLowerCase(),
         size: formatFileSize(file.size),
         category: category,
         url: publicUrl,
         uploadedBy: user.name || user.email,
-        uploadedAt: docData.uploaded_at
+        uploadedAt: docData.uploaded_at,
+        compressionInfo
       }
 
     } catch (error) {
       console.error('Upload error:', error)
       setUploadProgress(prev => ({
         ...prev,
-        [index]: { progress: 0, status: 'error', error: error.message }
+        [index]: { progress: 0, status: 'error', error: error.message, fileName: originalFile.name }
       }))
       throw error
     }
@@ -164,11 +257,12 @@ const FileUploader = ({
     if (selectedFiles.length === 0) return
 
     setUploading(true)
-
     try {
-      const uploadPromises = selectedFiles.map((file, index) => uploadFile(file, index))
-      const results = await Promise.allSettled(uploadPromises)
+      const uploadPromises = selectedFiles.map((fileData, index) =>
+        uploadFile(fileData, index)
+      )
 
+      const results = await Promise.allSettled(uploadPromises)
       const successful = []
       const failed = []
 
@@ -177,7 +271,7 @@ const FileUploader = ({
           successful.push(result.value)
         } else {
           failed.push({
-            file: selectedFiles[index].name,
+            file: selectedFiles[index].originalFile.name,
             error: result.reason.message
           })
         }
@@ -192,7 +286,7 @@ const FileUploader = ({
         onUploadError?.(errorMessage)
       }
 
-      // Reset state
+      // Reset state after a short delay to show completion status
       setTimeout(() => {
         setSelectedFiles([])
         setUploadProgress({})
@@ -229,7 +323,7 @@ const FileUploader = ({
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-
+    
     const files = e.dataTransfer.files
     if (files && files.length > 0) {
       handleFileSelect(files)
@@ -258,12 +352,9 @@ const FileUploader = ({
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           disabled={uploading}
         />
-
+        
         <div className="space-y-2">
-          <SafeIcon 
-            icon={FiUpload} 
-            className="w-8 h-8 text-gray-400 mx-auto" 
-          />
+          <SafeIcon icon={FiUpload} className="w-8 h-8 text-gray-400 mx-auto" />
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-medium text-primary-600 dark:text-primary-400">
@@ -272,8 +363,10 @@ const FileUploader = ({
               {' '}or drag and drop
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {acceptedTypes.includes('image/*') ? 'Images, ' : ''}
-              PDF, DOC, XLS files up to {maxSizeInMB}MB
+              {acceptedTypes.includes('image/*') ? 'Images, ' : ''}PDF, DOC, XLS files up to {maxSizeInMB}MB
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              📸 Images are automatically compressed to save space
             </p>
           </div>
         </div>
@@ -287,26 +380,34 @@ const FileUploader = ({
           </h4>
           
           <div className="space-y-2">
-            {selectedFiles.map((file, index) => {
+            {selectedFiles.map((fileData, index) => {
+              const { file, originalFile, compressionInfo } = fileData
               const progress = uploadProgress[index]
+              
               return (
                 <div
                   key={index}
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
                 >
                   <div className="flex items-center space-x-3 flex-1">
-                    <SafeIcon 
-                      icon={getFileIcon(file.type)} 
-                      className="w-5 h-5 text-gray-500" 
-                    />
+                    <SafeIcon icon={getFileIcon(file.type)} className="w-5 h-5 text-gray-500" />
+                    
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatFileSize(file.size)}
+                        {originalFile.name}
                       </p>
                       
+                      <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span>{formatFileSize(file.size)}</span>
+                        
+                        {compressionInfo && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                            <SafeIcon icon={FiCompress} className="w-3 h-3 mr-1" />
+                            -{compressionInfo.compressionRatio}% smaller
+                          </span>
+                        )}
+                      </div>
+
                       {/* Progress Bar */}
                       {progress && (
                         <div className="mt-1">
@@ -314,15 +415,15 @@ const FileUploader = ({
                             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                               <div
                                 className={`h-1 rounded-full transition-all duration-300 ${
-                                  progress.status === 'completed'
-                                    ? 'bg-green-500'
-                                    : progress.status === 'error'
-                                    ? 'bg-red-500'
-                                    : 'bg-primary-500'
+                                  progress.status === 'completed' ? 'bg-green-500' :
+                                  progress.status === 'error' ? 'bg-red-500' :
+                                  progress.status === 'compressing' ? 'bg-yellow-500' :
+                                  'bg-primary-500'
                                 }`}
                                 style={{ width: `${progress.progress}%` }}
                               />
                             </div>
+                            
                             {progress.status === 'completed' && (
                               <SafeIcon icon={FiCheck} className="w-3 h-3 text-green-500" />
                             )}
@@ -330,9 +431,13 @@ const FileUploader = ({
                               <SafeIcon icon={FiAlertTriangle} className="w-3 h-3 text-red-500" />
                             )}
                           </div>
-                          {progress.error && (
-                            <p className="text-xs text-red-500 mt-1">{progress.error}</p>
-                          )}
+                          
+                          <p className="text-xs text-gray-500 mt-1">
+                            {progress.status === 'compressing' && 'Compressing image...'}
+                            {progress.status === 'uploading' && `Uploading... ${progress.progress}%`}
+                            {progress.status === 'completed' && 'Upload complete'}
+                            {progress.status === 'error' && progress.error}
+                          </p>
                         </div>
                       )}
                     </div>

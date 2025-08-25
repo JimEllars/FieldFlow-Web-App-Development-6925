@@ -1,22 +1,18 @@
 import React, { useState, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { compressImage } from '../../utils/imageCompression'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from './SafeIcon'
 
-const { FiCamera, FiX, FiRotateCcw, FiCheck, FiImage } = FiIcons
+const { FiCamera, FiX, FiRotateCcw, FiCheck, FiImage, FiCompress } = FiIcons
 
-const PhotoCapture = ({
-  projectId,
-  onPhotoCapture,
-  onError,
-  category = 'photos',
-  maxPhotos = 10
-}) => {
-  const { user } = useAuth()
+const PhotoCapture = ({ projectId, onPhotoCapture, onError, category = 'photos', maxPhotos = 10 }) => {
+  const { user, testMode } = useAuth()
   const [isCapturing, setIsCapturing] = useState(false)
   const [capturedPhotos, setCapturedPhotos] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [compressionProgress, setCompressionProgress] = useState({})
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
@@ -53,29 +49,29 @@ const PhotoCapture = ({
   const capturePhoto = () => {
     const video = videoRef.current
     const canvas = canvasRef.current
-    
     if (!video || !canvas) return
 
     const context = canvas.getContext('2d')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
-    
+
     // Draw the video frame to canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height)
-    
-    // Convert to blob
+
+    // Convert to blob with initial quality
     canvas.toBlob((blob) => {
       if (blob) {
         const photo = {
           id: Date.now().toString(),
           blob,
           url: URL.createObjectURL(blob),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          originalSize: blob.size,
+          compressed: false
         }
-        
         setCapturedPhotos(prev => [...prev, photo])
       }
-    }, 'image/jpeg', 0.8)
+    }, 'image/jpeg', 0.9)
   }
 
   const removePhoto = (photoId) => {
@@ -88,13 +84,90 @@ const PhotoCapture = ({
     })
   }
 
+  const compressPhotos = async (photos) => {
+    const compressedPhotos = []
+    
+    for (let i = 0; i < photos.length; i++) {
+      const photo = photos[i]
+      
+      try {
+        setCompressionProgress(prev => ({
+          ...prev,
+          [photo.id]: { status: 'compressing', progress: 0 }
+        }))
+
+        // Create a File object from the blob
+        const file = new File([photo.blob], `photo-${photo.id}.jpg`, { type: 'image/jpeg' })
+        
+        // Compress the image
+        const compressedFile = await compressImage(file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          quality: 0.8
+        })
+
+        const compressedPhoto = {
+          ...photo,
+          blob: compressedFile,
+          compressedSize: compressedFile.size,
+          compressed: true,
+          compressionRatio: ((photo.originalSize - compressedFile.size) / photo.originalSize * 100).toFixed(1)
+        }
+
+        compressedPhotos.push(compressedPhoto)
+
+        setCompressionProgress(prev => ({
+          ...prev,
+          [photo.id]: { status: 'completed', progress: 100 }
+        }))
+
+      } catch (error) {
+        console.error('Error compressing photo:', error)
+        // Use original photo if compression fails
+        compressedPhotos.push(photo)
+        
+        setCompressionProgress(prev => ({
+          ...prev,
+          [photo.id]: { status: 'error', progress: 0 }
+        }))
+      }
+    }
+
+    return compressedPhotos
+  }
+
   const uploadPhotos = async () => {
     if (capturedPhotos.length === 0) return
 
     setUploading(true)
-
+    
     try {
-      const uploadPromises = capturedPhotos.map(async (photo, index) => {
+      // Compress photos first
+      const photosToUpload = await compressPhotos(capturedPhotos)
+
+      if (testMode) {
+        // Test mode - simulate upload
+        const mockResults = photosToUpload.map((photo, index) => ({
+          id: `photo-${Date.now()}-${index}`,
+          name: `Photo ${new Date().toLocaleString()}`,
+          type: 'jpg',
+          size: `${Math.round(photo.blob.size / 1024)} KB`,
+          category: category,
+          url: photo.url,
+          uploadedBy: user.name || user.email,
+          uploadedAt: new Date().toISOString(),
+          compressed: photo.compressed,
+          compressionRatio: photo.compressionRatio
+        }))
+
+        onPhotoCapture?.(mockResults)
+        setCapturedPhotos([])
+        stopCamera()
+        return
+      }
+
+      // Production mode - upload to Supabase
+      const uploadPromises = photosToUpload.map(async (photo, index) => {
         // Generate unique filename
         const fileName = `photo-${Date.now()}-${index}.jpg`
         const filePath = `${user.id}/${projectId}/${category}/${fileName}`
@@ -125,7 +198,13 @@ const PhotoCapture = ({
             size: `${Math.round(photo.blob.size / 1024)} KB`,
             category: category,
             url: publicUrl,
-            uploaded_by: user.name || user.email
+            uploaded_by: user.name || user.email,
+            metadata: {
+              compressed: photo.compressed,
+              originalSize: photo.originalSize,
+              compressedSize: photo.compressedSize,
+              compressionRatio: photo.compressionRatio
+            }
           })
           .select()
           .single()
@@ -140,12 +219,14 @@ const PhotoCapture = ({
           category: category,
           url: publicUrl,
           uploadedBy: user.name || user.email,
-          uploadedAt: docData.uploaded_at
+          uploadedAt: docData.uploaded_at,
+          compressed: photo.compressed,
+          compressionRatio: photo.compressionRatio
         }
       })
 
       const results = await Promise.all(uploadPromises)
-      
+
       // Clean up blob URLs
       capturedPhotos.forEach(photo => {
         if (photo.url) {
@@ -154,6 +235,7 @@ const PhotoCapture = ({
       })
 
       setCapturedPhotos([])
+      setCompressionProgress({})
       stopCamera()
       onPhotoCapture?.(results)
 
@@ -165,21 +247,34 @@ const PhotoCapture = ({
     }
   }
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files)
     
-    files.forEach(file => {
+    for (const file of files) {
       if (file.type.startsWith('image/')) {
-        const photo = {
-          id: Date.now().toString() + Math.random(),
-          blob: file,
-          url: URL.createObjectURL(file),
-          timestamp: new Date().toISOString()
+        try {
+          // Compress the uploaded file
+          const compressedFile = await compressImage(file)
+          
+          const photo = {
+            id: Date.now().toString() + Math.random(),
+            blob: compressedFile,
+            url: URL.createObjectURL(compressedFile),
+            timestamp: new Date().toISOString(),
+            originalSize: file.size,
+            compressedSize: compressedFile.size,
+            compressed: file.size !== compressedFile.size,
+            compressionRatio: file.size !== compressedFile.size ? 
+              ((file.size - compressedFile.size) / file.size * 100).toFixed(1) : '0'
+          }
+          
+          setCapturedPhotos(prev => [...prev, photo])
+        } catch (error) {
+          console.error('Error processing uploaded file:', error)
+          onError?.('Failed to process uploaded image.')
         }
-        
-        setCapturedPhotos(prev => [...prev, photo])
       }
-    })
+    }
   }
 
   return (
@@ -189,7 +284,6 @@ const PhotoCapture = ({
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
           Photo Capture
         </h3>
-        
         <div className="flex items-center space-x-2">
           {/* File Upload Option */}
           <label className="btn-secondary py-2 px-3 cursor-pointer">
@@ -265,23 +359,44 @@ const PhotoCapture = ({
           </h4>
           
           <div className="grid grid-cols-3 gap-2">
-            {capturedPhotos.map((photo) => (
-              <div key={photo.id} className="relative group">
-                <img
-                  src={photo.url}
-                  alt="Captured"
-                  className="w-full h-24 object-cover rounded-lg"
-                />
-                
-                {/* Remove Button */}
-                <button
-                  onClick={() => removePhoto(photo.id)}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <SafeIcon icon={FiX} className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+            {capturedPhotos.map((photo) => {
+              const compressionStatus = compressionProgress[photo.id]
+              
+              return (
+                <div key={photo.id} className="relative group">
+                  <img
+                    src={photo.url}
+                    alt="Captured"
+                    className="w-full h-24 object-cover rounded-lg"
+                  />
+                  
+                  {/* Compression Status */}
+                  {photo.compressed && (
+                    <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
+                      <SafeIcon icon={FiCompress} className="w-3 h-3 inline mr-1" />
+                      -{photo.compressionRatio}%
+                    </div>
+                  )}
+                  
+                  {/* Compression Progress */}
+                  {compressionStatus && compressionStatus.status === 'compressing' && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                      <div className="text-white text-xs">Compressing...</div>
+                    </div>
+                  )}
+                  
+                  {/* Remove Button */}
+                  {!uploading && !compressionStatus && (
+                    <button
+                      onClick={() => removePhoto(photo.id)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <SafeIcon icon={FiX} className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {/* Upload Button */}
@@ -294,7 +409,7 @@ const PhotoCapture = ({
               {uploading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2" />
-                  Uploading...
+                  Processing...
                 </>
               ) : (
                 <>
@@ -310,7 +425,8 @@ const PhotoCapture = ({
       {/* Info Message */}
       <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
         <p className="text-sm text-blue-700 dark:text-blue-400">
-          📸 Tip: Photos include location data and timestamps for accurate project documentation.
+          📸 <strong>Smart Compression:</strong> Photos are automatically compressed to save storage and improve upload speed. 
+          Large images are resized to 1920px max and compressed to reduce file size by up to 70%.
         </p>
       </div>
     </div>

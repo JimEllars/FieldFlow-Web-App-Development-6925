@@ -16,9 +16,11 @@ const ForgotPasswordScreen = React.lazy(() => import('./screens/auth/ForgotPassw
 const DashboardScreen = React.lazy(() => import('./screens/dashboard/DashboardScreen'))
 const ProjectsScreen = React.lazy(() => import('./screens/projects/ProjectsScreen'))
 const ProjectDetailScreen = React.lazy(() => import('./screens/projects/ProjectDetailScreen'))
+const CreateProjectScreen = React.lazy(() => import('./screens/projects/CreateProjectScreen'))
 const ScheduleScreen = React.lazy(() => import('./screens/schedule/ScheduleScreen'))
 const TasksScreen = React.lazy(() => import('./screens/tasks/TasksScreen'))
 const TaskDetailScreen = React.lazy(() => import('./screens/tasks/TaskDetailScreen'))
+const CreateTaskScreen = React.lazy(() => import('./screens/tasks/CreateTaskScreen'))
 const DailyLogsScreen = React.lazy(() => import('./screens/dailyLogs/DailyLogsScreen'))
 const CreateDailyLogScreen = React.lazy(() => import('./screens/dailyLogs/CreateDailyLogScreen'))
 const TimeTrackingScreen = React.lazy(() => import('./screens/timeTracking/TimeTrackingScreen'))
@@ -48,19 +50,17 @@ function App() {
                     </Route>
 
                     {/* Protected App Routes */}
-                    <Route
-                      path="/app"
-                      element={
-                        <ProtectedRoute>
-                          <AppLayout />
-                        </ProtectedRoute>
-                      }
-                    >
+                    <Route path="/app" element={
+                      <ProtectedRoute>
+                        <AppLayout />
+                      </ProtectedRoute>
+                    }>
                       <Route index element={<Navigate to="dashboard" replace />} />
                       <Route path="dashboard" element={<DashboardScreen />} />
 
                       {/* Projects */}
                       <Route path="projects" element={<ProjectsScreen />} />
+                      <Route path="projects/new" element={<CreateProjectScreen />} />
                       <Route path="projects/:projectId" element={<ProjectDetailScreen />} />
 
                       {/* Schedule */}
@@ -68,6 +68,7 @@ function App() {
 
                       {/* Tasks */}
                       <Route path="tasks" element={<TasksScreen />} />
+                      <Route path="tasks/new" element={<CreateTaskScreen />} />
                       <Route path="tasks/:taskId" element={<TaskDetailScreen />} />
 
                       {/* Daily Logs */}
