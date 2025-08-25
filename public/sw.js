@@ -1,7 +1,6 @@
 // Enhanced Service Worker with Stale-While-Revalidate Strategy
-const CACHE_NAME = 'fieldflow-v2.0.0'
+const CACHE_NAME = 'fieldflow-v2.1.0'
 const STATIC_CACHE = 'fieldflow-static-v2'
-const DYNAMIC_CACHE = 'fieldflow-dynamic-v2'
 const API_CACHE = 'fieldflow-api-v2'
 
 // Static assets to cache
@@ -15,7 +14,7 @@ const STATIC_ASSETS = [
 // API endpoints for stale-while-revalidate caching
 const API_ENDPOINTS = [
   '/rest/v1/projects_ff2024',
-  '/rest/v1/tasks_ff2024', 
+  '/rest/v1/tasks_ff2024',
   '/rest/v1/daily_logs_ff2024',
   '/rest/v1/time_entries_ff2024',
   '/rest/v1/documents_ff2024'
@@ -23,7 +22,7 @@ const API_ENDPOINTS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing v2.0.0...')
+  console.log('Service Worker: Installing v2.1.0...')
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       console.log('Service Worker: Caching static assets')
@@ -35,12 +34,12 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating v2.0.0...')
+  console.log('Service Worker: Activating v2.1.0...')
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (![STATIC_CACHE, DYNAMIC_CACHE, API_CACHE].includes(cacheName)) {
+          if (![STATIC_CACHE, API_CACHE].includes(cacheName)) {
             console.log('Service Worker: Deleting old cache:', cacheName)
             return caches.delete(cacheName)
           }
@@ -94,7 +93,7 @@ async function staleWhileRevalidate(request) {
       // Clone and cache the response
       const responseClone = response.clone()
       await cache.put(request, responseClone)
-
+      
       // Notify clients about fresh data
       notifyClients('DATA_UPDATED', {
         url: request.url,
@@ -118,7 +117,6 @@ async function staleWhileRevalidate(request) {
     const responseWithMetadata = cachedResponse.clone()
     responseWithMetadata.headers.set('X-Cache-Status', 'HIT')
     responseWithMetadata.headers.set('X-Cache-Date', new Date().toISOString())
-    
     return responseWithMetadata
   }
 
@@ -148,7 +146,7 @@ async function staleWhileRevalidate(request) {
 async function cacheFirst(request) {
   const cache = await caches.open(STATIC_CACHE)
   const cachedResponse = await cache.match(request)
-
+  
   if (cachedResponse) {
     return cachedResponse
   }
@@ -173,23 +171,22 @@ async function networkFirst(request) {
     
     // Cache successful responses
     if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(DYNAMIC_CACHE)
+      const cache = await caches.open(API_CACHE)
       const responseClone = networkResponse.clone()
       await cache.put(request, responseClone)
     }
-    
     return networkResponse
   } catch (error) {
     console.log('Network request failed, trying cache:', error)
     
     // Fallback to cache
-    const cache = await caches.open(DYNAMIC_CACHE)
+    const cache = await caches.open(API_CACHE)
     const cachedResponse = await cache.match(request)
     
     if (cachedResponse) {
       return cachedResponse
     }
-    
+
     // Return offline page if available
     if (request.destination === 'document') {
       const offlinePage = await cache.match('/index.html')
@@ -197,7 +194,7 @@ async function networkFirst(request) {
         return offlinePage
       }
     }
-    
+
     return new Response('Offline', { status: 503 })
   }
 }
@@ -227,7 +224,7 @@ function notifyClients(type, data) {
         type,
         data: {
           ...data,
-          serviceWorkerVersion: '2.0.0'
+          serviceWorkerVersion: '2.1.0'
         }
       })
     })
@@ -271,7 +268,6 @@ async function syncOfflineData() {
       failed: failedCount,
       timestamp: new Date().toISOString()
     })
-
   } catch (error) {
     console.error('Background sync failed:', error)
     notifyClients('SYNC_ERROR', {
@@ -381,6 +377,7 @@ async function getFromIndexedDB(key) {
     
     request.onsuccess = (event) => {
       const db = event.target.result
+      
       if (!db.objectStoreNames.contains('offlineData')) {
         // Fallback to localStorage
         const stored = localStorage.getItem(`sw-${key}`)
@@ -424,6 +421,7 @@ async function saveToIndexedDB(key, data) {
     
     request.onsuccess = (event) => {
       const db = event.target.result
+      
       if (!db.objectStoreNames.contains('offlineData')) {
         // Fallback to localStorage
         localStorage.setItem(`sw-${key}`, JSON.stringify(data))

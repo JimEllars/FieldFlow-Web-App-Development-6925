@@ -66,8 +66,8 @@ function App() {
         <ThemeProvider>
           <OfflineProvider>
             <AuthProvider>
-              <DataProvider>
-                <OptimisticUIProvider>
+              <OptimisticUIProvider>
+                <DataProvider>
                   <Router>
                     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                       {/* Performance monitoring */}
@@ -87,8 +87,8 @@ function App() {
                           </Route>
 
                           {/* Protected App Routes */}
-                          <Route 
-                            path="/app" 
+                          <Route
+                            path="/app"
                             element={
                               <ProtectedRoute>
                                 <AppLayout />
@@ -97,32 +97,32 @@ function App() {
                           >
                             <Route index element={<Navigate to="dashboard" replace />} />
                             <Route path="dashboard" element={<DashboardScreen />} />
-                            
+
                             {/* Projects */}
                             <Route path="projects" element={<ProjectsScreen />} />
                             <Route path="projects/new" element={<CreateProjectScreen />} />
                             <Route path="projects/:projectId" element={<ProjectDetailScreen />} />
-                            
+
                             {/* Schedule */}
                             <Route path="schedule" element={<ScheduleScreen />} />
-                            
+
                             {/* Tasks */}
                             <Route path="tasks" element={<TasksScreen />} />
                             <Route path="tasks/new" element={<CreateTaskScreen />} />
                             <Route path="tasks/:taskId" element={<TaskDetailScreen />} />
-                            
+
                             {/* Daily Logs */}
                             <Route path="daily-logs" element={<DailyLogsScreen />} />
                             <Route path="daily-logs/new" element={<CreateDailyLogScreen />} />
-                            
+
                             {/* Time Tracking */}
                             <Route path="time-tracking" element={<TimeTrackingScreen />} />
-                            
+
                             {/* Documents */}
                             <Route path="documents" element={<DocumentsScreen />} />
                             <Route path="documents/upload" element={<UploadDocumentScreen />} />
                             <Route path="documents/:documentId" element={<DocumentViewerScreen />} />
-                            
+
                             {/* Profile & Settings */}
                             <Route path="profile" element={<ProfileScreen />} />
                             <Route path="settings" element={<SettingsScreen />} />
@@ -136,8 +136,8 @@ function App() {
                       </Suspense>
                     </div>
                   </Router>
-                </OptimisticUIProvider>
-              </DataProvider>
+                </DataProvider>
+              </OptimisticUIProvider>
             </AuthProvider>
           </OfflineProvider>
         </ThemeProvider>

@@ -4,7 +4,7 @@ import { useOfflineStore } from '../../stores/offlineStore'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from './SafeIcon'
 
-const { FiWifi, FiWifiOff, FiRotateCw, FiCheckCircle, FiAlertCircle, FiClock, FiAlertTriangle, FiInfo, FiX, FiRefreshCw, FiTrash2 } = FiIcons
+const { FiWifi, FiWifiOff, FiRotateCw, FiCheckCircle, FiAlertCircle, FiClock, FiAlertTriangle, FiInfo, FiX, FiRefreshCw, FiTrash2, FiEye } = FiIcons
 
 const SyncStatus = ({ className = '', showDetails = false }) => {
   const [showFailedChanges, setShowFailedChanges] = useState(false)
@@ -273,15 +273,27 @@ const SyncStatus = ({ className = '', showDetails = false }) => {
                               Last failed: {new Date(change.lastFailedAt || change.timestamp).toLocaleString()}
                             </p>
                           </div>
-                          {change.retryCount < 3 && (
+                          <div className="flex items-center space-x-1">
                             <button
-                              onClick={() => retryFailedChange(change.id)}
-                              className="ml-2 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center"
+                              onClick={() => {
+                                // Show change details (implement as needed)
+                                console.log('Change details:', change)
+                              }}
+                              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              title="View Details"
                             >
-                              <SafeIcon icon={FiRefreshCw} className="w-3 h-3 mr-1" />
-                              Retry
+                              <SafeIcon icon={FiEye} className="w-4 h-4" />
                             </button>
-                          )}
+                            {change.retryCount < 3 && (
+                              <button
+                                onClick={() => retryFailedChange(change.id)}
+                                className="ml-2 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center"
+                              >
+                                <SafeIcon icon={FiRefreshCw} className="w-3 h-3 mr-1" />
+                                Retry
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

@@ -307,10 +307,39 @@ export const DataProvider = ({ children }) => {
     })
   }
 
+  const deleteTask = async (taskId) => {
+    if (!user?.id) throw new Error('User not authenticated')
+
+    const existingTask = data.tasks.find(t => t.id === taskId)
+    if (!existingTask) throw new Error('Task not found')
+
+    return performOptimisticAction({
+      id: taskId,
+      type: 'delete',
+      entity: 'tasks',
+      data: { id: taskId },
+      optimisticData: { id: taskId, status: 'deleting' },
+      onSuccess: () => {
+        setData(prev => ({
+          ...prev,
+          tasks: prev.tasks.filter(t => t.id !== taskId)
+        }))
+      },
+      onError: (error) => {
+        setData(prev => ({
+          ...prev,
+          tasks: prev.tasks.map(t => t.id === taskId ? existingTask : t)
+        }))
+        throw error
+      }
+    })
+  }
+
   // Create demo data for test mode (stored in localStorage)
   const createDemoDataTestMode = async () => {
     try {
       console.log('Creating demo data for test mode user:', user.id)
+      
       const demoData = {
         projects: [
           {
@@ -482,6 +511,7 @@ export const DataProvider = ({ children }) => {
     deleteProject,
     createTask,
     updateTask,
+    deleteTask,
     createTimeEntry,
     createDailyLog,
     
