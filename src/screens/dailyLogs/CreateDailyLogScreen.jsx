@@ -1,27 +1,31 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { useData } from '../../contexts/DataContext'
-import { useAuth } from '../../contexts/AuthContext'
+import { useDataStore } from '../../stores/dataStore'
+import { useAuthStore } from '../../stores/authStore'
+import { useAppStore } from '../../stores/appStore'
+import { useFormValidation } from '../../hooks/useFormValidation'
+import { validators } from '../../utils/validation'
 import PhotoCapture from '../../components/common/PhotoCapture'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 
-const { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiCamera } = FiIcons
+const { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiCamera, FiAlertTriangle } = FiIcons
 
 const CreateDailyLogScreen = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
-  const { data, createDailyLog } = useData()
-  
+  const { user } = useAuthStore()
+  const { data, createDailyLog } = useDataStore()
+  const addNotification = useAppStore(state => state.addNotification)
+
   // Get project ID from query params if available
   const queryParams = new URLSearchParams(location.search)
   const projectIdParam = queryParams.get('projectId')
-  
+
   const today = new Date().toISOString().split('T')[0]
   const currentWeather = 'Sunny, 75°F' // This would normally come from a weather API
 
-  const [formData, setFormData] = useState({
+  const initialValues = {
     projectId: projectIdParam || '',
     date: today,
     weather: currentWeather,
@@ -30,115 +34,143 @@ const CreateDailyLogScreen = () => {
     crew: [],
     materials: [],
     equipment: [],
-    photos: [] // Will store photo URLs and metadata
+    photos: []
+  }
+
+  // Validation rules for daily log
+  const dailyLogValidationRules = {
+    projectId: [validators.required],
+    workCompleted: [validators.required, validators.minLength(10)]
+  }
+
+  const {
+    values: formData,
+    errors,
+    touched,
+    isFormValid,
+    setValue,
+    setFieldTouched,
+    handleSubmit,
+    getFieldProps
+  } = useFormValidation(initialValues, dailyLogValidationRules, {
+    validateOnChange: true,
+    validateOnBlur: true,
+    debounceMs: 300
   })
 
   const [crewMember, setCrewMember] = useState('')
   const [material, setMaterial] = useState({ item: '', quantity: '', unit: '' })
   const [equipment, setEquipment] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPhotoCapture, setShowPhotoCapture] = useState(false)
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+  const handleFieldChange = (name, value) => {
+    setValue(name, value)
   }
 
   const handleAddCrew = () => {
     if (!crewMember.trim()) return
-    setFormData(prev => ({
-      ...prev,
-      crew: [...prev.crew, crewMember.trim()]
-    }))
+    
+    const newCrew = [...formData.crew, crewMember.trim()]
+    handleFieldChange('crew', newCrew)
     setCrewMember('')
   }
 
   const handleRemoveCrew = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      crew: prev.crew.filter((_, i) => i !== index)
-    }))
+    const newCrew = formData.crew.filter((_, i) => i !== index)
+    handleFieldChange('crew', newCrew)
   }
 
   const handleAddMaterial = () => {
     if (!material.item.trim() || !material.quantity || !material.unit.trim()) return
-    setFormData(prev => ({
-      ...prev,
-      materials: [...prev.materials, { ...material }]
-    }))
+    
+    const newMaterials = [...formData.materials, { ...material }]
+    handleFieldChange('materials', newMaterials)
     setMaterial({ item: '', quantity: '', unit: '' })
   }
 
   const handleRemoveMaterial = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      materials: prev.materials.filter((_, i) => i !== index)
-    }))
+    const newMaterials = formData.materials.filter((_, i) => i !== index)
+    handleFieldChange('materials', newMaterials)
   }
 
   const handleAddEquipment = () => {
     if (!equipment.trim()) return
-    setFormData(prev => ({
-      ...prev,
-      equipment: [...prev.equipment, equipment.trim()]
-    }))
+    
+    const newEquipment = [...formData.equipment, equipment.trim()]
+    handleFieldChange('equipment', newEquipment)
     setEquipment('')
   }
 
   const handleRemoveEquipment = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      equipment: prev.equipment.filter((_, i) => i !== index)
-    }))
+    const newEquipment = formData.equipment.filter((_, i) => i !== index)
+    handleFieldChange('equipment', newEquipment)
   }
 
   const handlePhotoCapture = (capturedPhotos) => {
-    setFormData(prev => ({
-      ...prev,
-      photos: [...prev.photos, ...capturedPhotos]
-    }))
+    const newPhotos = [...formData.photos, ...capturedPhotos]
+    handleFieldChange('photos', newPhotos)
     setShowPhotoCapture(false)
   }
 
   const handleRemovePhoto = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      photos: prev.photos.filter((_, i) => i !== index)
-    }))
+    const newPhotos = formData.photos.filter((_, i) => i !== index)
+    handleFieldChange('photos', newPhotos)
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-
-    if (!formData.projectId) {
-      setError('Please select a project')
-      return
-    }
-
-    if (!formData.workCompleted.trim()) {
-      setError('Please describe the work completed')
-      return
-    }
-
-    setLoading(true)
+  const onSubmit = handleSubmit(async (validatedData) => {
+    if (isSubmitting) return
+    
+    setIsSubmitting(true)
     
     try {
       // Add submission details
       const logData = {
-        ...formData,
+        ...validatedData,
         submittedBy: user?.name || user?.email || 'Unknown User',
         submittedAt: new Date().toISOString()
       }
 
-      await createDailyLog(logData)
-      navigate('/app/daily-logs')
+      const result = await createDailyLog(logData, {
+        onSuccess: (log) => {
+          addNotification({
+            type: 'success',
+            title: 'Daily Log Created',
+            message: 'Daily log has been saved successfully'
+          })
+          navigate('/app/daily-logs')
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Failed to Create Daily Log',
+            message: error.message
+          })
+        }
+      })
+
+      return result
     } catch (error) {
       console.error('Error creating daily log:', error)
-      setError('Failed to create daily log')
+      addNotification({
+        type: 'error',
+        title: 'Failed to Create Daily Log',
+        message: error.message
+      })
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
+    }
+  })
+
+  const getFieldInputProps = (name) => {
+    const baseProps = getFieldProps(name)
+    return {
+      ...baseProps,
+      className: `input-field ${
+        errors[name] && touched[name] ? 'border-red-500 focus:ring-red-500' : ''
+      }`,
+      'aria-invalid': errors[name] && touched[name] ? 'true' : 'false',
+      'aria-describedby': errors[name] && touched[name] ? `${name}-error` : undefined
     }
   }
 
@@ -160,13 +192,7 @@ const CreateDailyLogScreen = () => {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-          </div>
-        )}
-
+      <form onSubmit={onSubmit} className="space-y-6">
         <div className="card">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Project Selection */}
@@ -176,10 +202,7 @@ const CreateDailyLogScreen = () => {
               </label>
               <select
                 id="projectId"
-                name="projectId"
-                value={formData.projectId}
-                onChange={handleChange}
-                className="input-field"
+                {...getFieldInputProps('projectId')}
                 required
               >
                 <option value="">Select a project</option>
@@ -189,6 +212,12 @@ const CreateDailyLogScreen = () => {
                   </option>
                 ))}
               </select>
+              {errors.projectId && touched.projectId && (
+                <p id="projectId-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
+                  {errors.projectId}
+                </p>
+              )}
             </div>
 
             {/* Date */}
@@ -198,12 +227,9 @@ const CreateDailyLogScreen = () => {
               </label>
               <input
                 id="date"
-                name="date"
                 type="date"
-                value={formData.date}
-                onChange={handleChange}
-                className="input-field"
                 required
+                {...getFieldInputProps('date')}
               />
             </div>
 
@@ -214,12 +240,9 @@ const CreateDailyLogScreen = () => {
               </label>
               <input
                 id="weather"
-                name="weather"
                 type="text"
-                value={formData.weather}
-                onChange={handleChange}
-                className="input-field"
                 placeholder="e.g., Sunny, 75°F"
+                {...getFieldInputProps('weather')}
               />
             </div>
           </div>
@@ -231,13 +254,21 @@ const CreateDailyLogScreen = () => {
             </label>
             <textarea
               id="workCompleted"
-              name="workCompleted"
-              value={formData.workCompleted}
-              onChange={handleChange}
-              className="input-field min-h-[100px]"
               placeholder="Describe the work completed today"
+              className={`input-field min-h-[100px] ${
+                errors.workCompleted && touched.workCompleted ? 'border-red-500 focus:ring-red-500' : ''
+              }`}
+              value={formData.workCompleted}
+              onChange={(e) => handleFieldChange('workCompleted', e.target.value)}
+              onBlur={() => setFieldTouched('workCompleted')}
               required
             />
+            {errors.workCompleted && touched.workCompleted && (
+              <p id="workCompleted-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
+                {errors.workCompleted}
+              </p>
+            )}
           </div>
 
           {/* Notes */}
@@ -247,11 +278,11 @@ const CreateDailyLogScreen = () => {
             </label>
             <textarea
               id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              className="input-field min-h-[80px]"
               placeholder="Any additional notes, issues, or observations"
+              className="input-field min-h-[80px]"
+              value={formData.notes}
+              onChange={(e) => handleFieldChange('notes', e.target.value)}
+              onBlur={() => setFieldTouched('notes')}
             />
           </div>
         </div>
@@ -278,7 +309,13 @@ const CreateDailyLogScreen = () => {
                 projectId={formData.projectId}
                 category="daily-logs"
                 onPhotoCapture={handlePhotoCapture}
-                onError={setError}
+                onError={(error) => {
+                  addNotification({
+                    type: 'error',
+                    title: 'Photo Error',
+                    message: error
+                  })
+                }}
                 maxPhotos={10}
               />
             </div>
@@ -290,7 +327,6 @@ const CreateDailyLogScreen = () => {
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Attached Photos ({formData.photos.length})
               </h4>
-              
               <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                 {formData.photos.map((photo, index) => (
                   <div key={index} className="relative group">
@@ -299,7 +335,6 @@ const CreateDailyLogScreen = () => {
                       alt={photo.name}
                       className="w-full h-20 object-cover rounded-lg"
                     />
-                    
                     {/* Remove Button */}
                     <button
                       type="button"
@@ -320,7 +355,6 @@ const CreateDailyLogScreen = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Crew Members
           </h2>
-          
           <div className="flex items-center space-x-2 mb-4">
             <input
               type="text"
@@ -369,7 +403,6 @@ const CreateDailyLogScreen = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Materials Used
           </h2>
-          
           <div className="grid grid-cols-3 gap-2 mb-4">
             <input
               type="text"
@@ -437,7 +470,6 @@ const CreateDailyLogScreen = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Equipment Used
           </h2>
-          
           <div className="flex items-center space-x-2 mb-4">
             <input
               type="text"
@@ -485,10 +517,10 @@ const CreateDailyLogScreen = () => {
         <div className="flex justify-center">
           <button
             type="submit"
-            disabled={loading}
-            className="btn-primary py-3 px-8 flex items-center"
+            disabled={isSubmitting || !isFormValid}
+            className="btn-primary py-3 px-8 flex items-center disabled:opacity-50"
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
                 Saving...
@@ -501,6 +533,25 @@ const CreateDailyLogScreen = () => {
             )}
           </button>
         </div>
+
+        {/* Form Validation Summary */}
+        {Object.keys(errors).length > 0 && !isFormValid && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex">
+              <SafeIcon icon={FiAlertTriangle} className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                  Please fix the following errors:
+                </h3>
+                <ul className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 list-disc list-inside">
+                  {Object.entries(errors).map(([field, error]) => (
+                    <li key={field}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   )

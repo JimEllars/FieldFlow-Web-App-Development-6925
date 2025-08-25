@@ -1,23 +1,27 @@
 import React, { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useData } from '../../contexts/DataContext'
-import { useAuth } from '../../contexts/AuthContext'
+import { useDataStore } from '../../stores/dataStore'
+import { useAuthStore } from '../../stores/authStore'
+import { useAppStore } from '../../stores/appStore'
+import { useFormValidation } from '../../hooks/useFormValidation'
+import { commonValidationRules } from '../../utils/validation'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 
-const { FiArrowLeft, FiSave } = FiIcons
+const { FiArrowLeft, FiSave, FiAlertTriangle } = FiIcons
 
 const CreateTaskScreen = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { data, createTask } = useData()
-  const { user } = useAuth()
+  const { data, createTask } = useDataStore()
+  const { user } = useAuthStore()
+  const addNotification = useAppStore(state => state.addNotification)
 
   // Get project ID from query params if available
   const queryParams = new URLSearchParams(location.search)
   const projectIdParam = queryParams.get('projectId')
 
-  const [formData, setFormData] = useState({
+  const initialValues = {
     projectId: projectIdParam || '',
     title: '',
     description: '',
@@ -26,52 +30,80 @@ const CreateTaskScreen = () => {
     assignee: user?.name || '',
     dueDate: '',
     estimatedHours: ''
-  })
-
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+  const {
+    values: formData,
+    errors,
+    touched,
+    isFormValid,
+    setValue,
+    setFieldTouched,
+    handleSubmit,
+    getFieldProps
+  } = useFormValidation(initialValues, commonValidationRules.task, {
+    validateOnChange: true,
+    validateOnBlur: true,
+    debounceMs: 300
+  })
 
-    if (!formData.projectId) {
-      setError('Please select a project')
-      return
-    }
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-    if (!formData.title.trim()) {
-      setError('Task title is required')
-      return
-    }
+  const handleFieldChange = (name, value) => {
+    setValue(name, value)
+  }
 
-    if (!formData.dueDate) {
-      setError('Due date is required')
-      return
-    }
-
-    setLoading(true)
+  const onSubmit = handleSubmit(async (validatedData) => {
+    if (isSubmitting) return
+    
+    setIsSubmitting(true)
+    
     try {
       const taskData = {
-        ...formData,
-        estimatedHours: parseFloat(formData.estimatedHours) || 0
+        ...validatedData,
+        estimatedHours: parseFloat(validatedData.estimatedHours) || 0
       }
 
-      const newTask = await createTask(taskData)
-      navigate(`/app/tasks/${newTask.id}`)
+      const result = await createTask(taskData, {
+        onSuccess: (task) => {
+          addNotification({
+            type: 'success',
+            title: 'Task Created',
+            message: `${task.title} has been created successfully`
+          })
+          navigate(`/app/tasks/${task.id}`)
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Failed to Create Task',
+            message: error.message
+          })
+        }
+      })
+
+      return result
     } catch (error) {
-      console.error('Error creating task:', error)
-      setError('Failed to create task')
+      console.error('Failed to create task:', error)
+      addNotification({
+        type: 'error',
+        title: 'Failed to Create Task',
+        message: error.message
+      })
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
+    }
+  })
+
+  const getFieldInputProps = (name) => {
+    const baseProps = getFieldProps(name)
+    return {
+      ...baseProps,
+      className: `input-field ${
+        errors[name] && touched[name] ? 'border-red-500 focus:ring-red-500' : ''
+      }`,
+      'aria-invalid': errors[name] && touched[name] ? 'true' : 'false',
+      'aria-describedby': errors[name] && touched[name] ? `${name}-error` : undefined
     }
   }
 
@@ -93,13 +125,7 @@ const CreateTaskScreen = () => {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-          </div>
-        )}
-
+      <form onSubmit={onSubmit} className="space-y-6">
         <div className="card">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Project Selection */}
@@ -109,10 +135,7 @@ const CreateTaskScreen = () => {
               </label>
               <select
                 id="projectId"
-                name="projectId"
-                value={formData.projectId}
-                onChange={handleChange}
-                className="input-field"
+                {...getFieldInputProps('projectId')}
                 required
               >
                 <option value="">Select a project</option>
@@ -122,6 +145,12 @@ const CreateTaskScreen = () => {
                   </option>
                 ))}
               </select>
+              {errors.projectId && touched.projectId && (
+                <p id="projectId-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
+                  {errors.projectId}
+                </p>
+              )}
             </div>
 
             {/* Task Title */}
@@ -131,14 +160,17 @@ const CreateTaskScreen = () => {
               </label>
               <input
                 id="title"
-                name="title"
                 type="text"
-                value={formData.title}
-                onChange={handleChange}
-                className="input-field"
                 placeholder="Enter task title"
                 required
+                {...getFieldInputProps('title')}
               />
+              {errors.title && touched.title && (
+                <p id="title-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
+                  {errors.title}
+                </p>
+              )}
             </div>
 
             {/* Priority */}
@@ -146,13 +178,7 @@ const CreateTaskScreen = () => {
               <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Priority
               </label>
-              <select
-                id="priority"
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="input-field"
-              >
+              <select id="priority" {...getFieldInputProps('priority')}>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
@@ -164,13 +190,7 @@ const CreateTaskScreen = () => {
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Status
               </label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="input-field"
-              >
+              <select id="status" {...getFieldInputProps('status')}>
                 <option value="pending">Pending</option>
                 <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
@@ -180,17 +200,21 @@ const CreateTaskScreen = () => {
             {/* Assignee */}
             <div>
               <label htmlFor="assignee" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Assigned To
+                Assigned To *
               </label>
               <input
                 id="assignee"
-                name="assignee"
                 type="text"
-                value={formData.assignee}
-                onChange={handleChange}
-                className="input-field"
                 placeholder="Enter assignee name"
+                required
+                {...getFieldInputProps('assignee')}
               />
+              {errors.assignee && touched.assignee && (
+                <p id="assignee-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
+                  {errors.assignee}
+                </p>
+              )}
             </div>
 
             {/* Due Date */}
@@ -200,13 +224,16 @@ const CreateTaskScreen = () => {
               </label>
               <input
                 id="dueDate"
-                name="dueDate"
                 type="date"
-                value={formData.dueDate}
-                onChange={handleChange}
-                className="input-field"
                 required
+                {...getFieldInputProps('dueDate')}
               />
+              {errors.dueDate && touched.dueDate && (
+                <p id="dueDate-error" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <SafeIcon icon={FiAlertTriangle} className="w-4 h-4 mr-1" />
+                  {errors.dueDate}
+                </p>
+              )}
             </div>
 
             {/* Estimated Hours */}
@@ -216,14 +243,11 @@ const CreateTaskScreen = () => {
               </label>
               <input
                 id="estimatedHours"
-                name="estimatedHours"
                 type="number"
-                value={formData.estimatedHours}
-                onChange={handleChange}
-                className="input-field"
                 placeholder="0"
                 min="0"
                 step="0.5"
+                {...getFieldInputProps('estimatedHours')}
               />
             </div>
 
@@ -234,11 +258,13 @@ const CreateTaskScreen = () => {
               </label>
               <textarea
                 id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className="input-field min-h-[120px]"
                 placeholder="Describe the task details and requirements"
+                className={`input-field min-h-[120px] ${
+                  errors.description && touched.description ? 'border-red-500 focus:ring-red-500' : ''
+                }`}
+                value={formData.description}
+                onChange={(e) => handleFieldChange('description', e.target.value)}
+                onBlur={() => setFieldTouched('description')}
               />
             </div>
           </div>
@@ -248,10 +274,10 @@ const CreateTaskScreen = () => {
         <div className="flex justify-center">
           <button
             type="submit"
-            disabled={loading}
-            className="btn-primary py-3 px-8 flex items-center"
+            disabled={isSubmitting || !isFormValid}
+            className="btn-primary py-3 px-8 flex items-center disabled:opacity-50"
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
                 Creating...
@@ -264,6 +290,25 @@ const CreateTaskScreen = () => {
             )}
           </button>
         </div>
+
+        {/* Form Validation Summary */}
+        {Object.keys(errors).length > 0 && !isFormValid && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex">
+              <SafeIcon icon={FiAlertTriangle} className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                  Please fix the following errors:
+                </h3>
+                <ul className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 list-disc list-inside">
+                  {Object.entries(errors).map(([field, error]) => (
+                    <li key={field}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   )
