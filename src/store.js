@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// Sample data
+// Sample data with more comprehensive examples
 const sampleProjects = [
   {
     id: '1',
@@ -94,6 +94,70 @@ const sampleTasks = [
   }
 ]
 
+const sampleDailyLogs = [
+  {
+    id: '1',
+    projectId: '1',
+    date: '2024-11-20',
+    weather: 'Sunny, 68°F',
+    workCompleted: 'Completed installation of deck joists and began laying composite boards. Made excellent progress on the main deck area.',
+    notes: 'Client was very pleased with progress. Need to order additional screws for tomorrow.',
+    crew: ['Mike Rodriguez', 'Sarah Chen'],
+    materials: [
+      { item: 'Composite Decking Boards', quantity: '24', unit: 'pieces' },
+      { item: 'Deck Screws', quantity: '2', unit: 'lbs' }
+    ],
+    equipment: ['Circular Saw', 'Drill', 'Level'],
+    submittedBy: 'Mike Rodriguez',
+    submittedAt: '2024-11-20T17:30:00.000Z'
+  },
+  {
+    id: '2',
+    projectId: '2',
+    date: '2024-11-19',
+    weather: 'Partly cloudy, 72°F',
+    workCompleted: 'Site preparation completed. Removed existing vegetation and graded the area for new landscaping.',
+    notes: 'Irrigation lines marked and protected. Ready for next phase.',
+    crew: ['Lisa Martinez', 'David Park'],
+    materials: [
+      { item: 'Topsoil', quantity: '5', unit: 'yards' }
+    ],
+    equipment: ['Bobcat', 'Hand tools'],
+    submittedBy: 'Lisa Martinez',
+    submittedAt: '2024-11-19T16:45:00.000Z'
+  }
+]
+
+const sampleTimeEntries = [
+  {
+    id: '1',
+    projectId: '1',
+    date: '2024-11-20',
+    clockIn: '07:30:00',
+    clockOut: '16:30:00',
+    totalHours: 8.5,
+    description: 'Deck construction - installed framing and started decking boards'
+  },
+  {
+    id: '2',
+    projectId: '1',
+    date: '2024-11-19',
+    clockIn: '08:00:00',
+    clockOut: '17:00:00',
+    totalHours: 8.0,
+    description: 'Prepared deck foundation and installed support posts'
+  },
+  {
+    id: '3',
+    projectId: '2',
+    date: '2024-11-19',
+    clockIn: '07:00:00',
+    clockOut: '15:30:00',
+    totalHours: 7.5,
+    description: 'Site preparation and landscaping layout'
+  }
+]
+
 export const useStore = create(
   persist(
     (set, get) => ({
@@ -104,11 +168,11 @@ export const useStore = create(
       // UI state
       theme: 'light',
       
-      // Data
+      // Data with expanded sample data
       projects: sampleProjects,
       tasks: sampleTasks,
-      dailyLogs: [],
-      timeEntries: [],
+      dailyLogs: sampleDailyLogs,
+      timeEntries: sampleTimeEntries,
       documents: [],
       
       // Actions
@@ -118,6 +182,10 @@ export const useStore = create(
         user: null, 
         isAuthenticated: false 
       }),
+      
+      updateUser: (userData) => set((state) => ({
+        user: { ...state.user, ...userData }
+      })),
       
       setTheme: (theme) => {
         set({ theme })
@@ -161,6 +229,55 @@ export const useStore = create(
       
       deleteTask: (id) => set((state) => ({
         tasks: state.tasks.filter(t => t.id !== id)
+      })),
+      
+      // Daily log actions
+      createDailyLog: (logData) => set((state) => ({
+        dailyLogs: [...state.dailyLogs, {
+          id: Date.now().toString(),
+          ...logData
+        }]
+      })),
+      
+      updateDailyLog: (id, updates) => set((state) => ({
+        dailyLogs: state.dailyLogs.map(log =>
+          log.id === id ? { ...log, ...updates } : log
+        )
+      })),
+      
+      deleteDailyLog: (id) => set((state) => ({
+        dailyLogs: state.dailyLogs.filter(log => log.id !== id)
+      })),
+      
+      // Time entry actions
+      createTimeEntry: (entryData) => set((state) => ({
+        timeEntries: [...state.timeEntries, {
+          id: Date.now().toString(),
+          ...entryData
+        }]
+      })),
+      
+      updateTimeEntry: (id, updates) => set((state) => ({
+        timeEntries: state.timeEntries.map(entry =>
+          entry.id === id ? { ...entry, ...updates } : entry
+        )
+      })),
+      
+      deleteTimeEntry: (id) => set((state) => ({
+        timeEntries: state.timeEntries.filter(entry => entry.id !== id)
+      })),
+      
+      // Document actions
+      createDocument: (docData) => set((state) => ({
+        documents: [...state.documents, {
+          id: Date.now().toString(),
+          ...docData,
+          uploadedAt: new Date().toISOString()
+        }]
+      })),
+      
+      deleteDocument: (id) => set((state) => ({
+        documents: state.documents.filter(doc => doc.id !== id)
       }))
     }),
     {
@@ -170,7 +287,10 @@ export const useStore = create(
         isAuthenticated: state.isAuthenticated,
         theme: state.theme,
         projects: state.projects,
-        tasks: state.tasks
+        tasks: state.tasks,
+        dailyLogs: state.dailyLogs,
+        timeEntries: state.timeEntries,
+        documents: state.documents
       })
     }
   )
