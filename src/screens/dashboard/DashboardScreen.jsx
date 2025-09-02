@@ -7,10 +7,7 @@ import { format } from 'date-fns'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 
-const { 
-  FiFolder, FiCheckSquare, FiClock, FiFileText, 
-  FiTrendingUp, FiUsers, FiCalendar, FiPlus 
-} = FiIcons
+const { FiFolder, FiCheckSquare, FiClock, FiFileText, FiTrendingUp, FiUsers, FiCalendar, FiPlus } = FiIcons
 
 const DashboardScreen = () => {
   const { user } = useAuth()
@@ -18,47 +15,23 @@ const DashboardScreen = () => {
   const { isOnline, pendingChanges } = useOffline()
 
   const stats = {
-    activeProjects: data.projects.filter(p => p.status === 'active').length,
-    pendingTasks: data.tasks.filter(t => t.status === 'pending').length,
-    totalProjects: data.projects.length,
-    completedTasks: data.tasks.filter(t => t.status === 'completed').length
+    activeProjects: data.projects?.filter(p => p.status === 'active').length || 0,
+    pendingTasks: data.tasks?.filter(t => t.status === 'pending').length || 0,
+    totalProjects: data.projects?.length || 0,
+    completedTasks: data.tasks?.filter(t => t.status === 'completed').length || 0
   }
 
-  const recentProjects = data.projects.slice(0, 3)
-  const upcomingTasks = data.tasks
+  const recentProjects = (data.projects || []).slice(0, 3)
+  const upcomingTasks = (data.tasks || [])
     .filter(t => t.status !== 'completed')
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
     .slice(0, 3)
 
   const quickActions = [
-    {
-      title: 'New Daily Log',
-      description: 'Record today\'s progress',
-      icon: FiFileText,
-      link: '/app/daily-logs/new',
-      color: 'bg-blue-500'
-    },
-    {
-      title: 'Clock In',
-      description: 'Start time tracking',
-      icon: FiClock,
-      link: '/app/time-tracking',
-      color: 'bg-green-500'
-    },
-    {
-      title: 'View Tasks',
-      description: 'Check assignments',
-      icon: FiCheckSquare,
-      link: '/app/tasks',
-      color: 'bg-orange-500'
-    },
-    {
-      title: 'Browse Projects',
-      description: 'Manage projects',
-      icon: FiFolder,
-      link: '/app/projects',
-      color: 'bg-purple-500'
-    }
+    { title: 'New Daily Log', description: 'Record today\'s progress', icon: FiFileText, link: '/app/daily-logs/new', color: 'bg-blue-500' },
+    { title: 'Clock In', description: 'Start time tracking', icon: FiClock, link: '/app/time-tracking', color: 'bg-green-500' },
+    { title: 'View Tasks', description: 'Check assignments', icon: FiCheckSquare, link: '/app/tasks', color: 'bg-orange-500' },
+    { title: 'Browse Projects', description: 'Manage projects', icon: FiFolder, link: '/app/projects', color: 'bg-purple-500' }
   ]
 
   return (
@@ -66,7 +39,7 @@ const DashboardScreen = () => {
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">
-          Welcome back, {user?.name?.split(' ')[0]}!
+          Welcome back, {user?.name?.split(' ')[0] || 'User'}!
         </h1>
         <p className="text-primary-100">
           {format(new Date(), 'EEEE, MMMM do, yyyy')}
@@ -74,7 +47,7 @@ const DashboardScreen = () => {
         {!isOnline && (
           <div className="mt-3 flex items-center text-primary-100">
             <SafeIcon icon={FiCheckSquare} className="w-4 h-4 mr-2" />
-            <span className="text-sm">Working offline - {pendingChanges} changes pending</span>
+            <span className="text-sm">Working offline - {pendingChanges || 0} changes pending</span>
           </div>
         )}
       </div>
@@ -180,44 +153,55 @@ const DashboardScreen = () => {
             </Link>
           </div>
           <div className="space-y-3">
-            {recentProjects.map((project) => (
-              <Link
-                key={project.id}
-                to={`/app/projects/${project.id}`}
-                className="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      {project.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {project.client}
+            {recentProjects.length === 0 ? (
+              <div className="text-center py-8">
+                <SafeIcon icon={FiFolder} className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                <p className="text-sm text-gray-600 dark:text-gray-400">No projects yet</p>
+                <Link to="/app/projects/new" className="btn-primary mt-4 inline-flex items-center">
+                  <SafeIcon icon={FiPlus} className="w-4 h-4 mr-1" />
+                  Create Project
+                </Link>
+              </div>
+            ) : (
+              recentProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  to={`/app/projects/${project.id}`}
+                  className="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                        {project.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {project.client}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        project.status === 'active'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                      }`}>
+                        {project.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${project.progress || 0}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {project.progress || 0}% complete
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      project.status === 'active' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
-                    }`}>
-                      {project.status}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${project.progress}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {project.progress}% complete
-                  </p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
 
@@ -235,39 +219,50 @@ const DashboardScreen = () => {
             </Link>
           </div>
           <div className="space-y-3">
-            {upcomingTasks.map((task) => (
-              <Link
-                key={task.id}
-                to={`/app/tasks/${task.id}`}
-                className="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      {task.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Assigned to: {task.assignee}
-                    </p>
+            {upcomingTasks.length === 0 ? (
+              <div className="text-center py-8">
+                <SafeIcon icon={FiCheckSquare} className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                <p className="text-sm text-gray-600 dark:text-gray-400">No upcoming tasks</p>
+                <Link to="/app/tasks/new" className="btn-primary mt-4 inline-flex items-center">
+                  <SafeIcon icon={FiPlus} className="w-4 h-4 mr-1" />
+                  Create Task
+                </Link>
+              </div>
+            ) : (
+              upcomingTasks.map((task) => (
+                <Link
+                  key={task.id}
+                  to={`/app/tasks/${task.id}`}
+                  className="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                        {task.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Assigned to: {task.assignee}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        task.priority === 'high'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                          : task.priority === 'medium'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                      }`}>
+                        {task.priority}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      task.priority === 'high'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                        : task.priority === 'medium'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                    }`}>
-                      {task.priority}
-                    </span>
+                  <div className="flex items-center mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    <SafeIcon icon={FiCalendar} className="w-3 h-3 mr-1" />
+                    Due: {format(new Date(task.dueDate), 'MMM d, yyyy')}
                   </div>
-                </div>
-                <div className="flex items-center mt-2 text-xs text-gray-600 dark:text-gray-400">
-                  <SafeIcon icon={FiCalendar} className="w-3 h-3 mr-1" />
-                  Due: {format(new Date(task.dueDate), 'MMM d, yyyy')}
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>

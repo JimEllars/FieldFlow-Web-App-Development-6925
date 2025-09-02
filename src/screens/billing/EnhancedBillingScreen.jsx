@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuthStore } from '../../stores/authStore'
 import { SUBSCRIPTION_PLANS, getCustomerPortalUrl } from '../../lib/stripe'
 import { format } from 'date-fns'
 import * as FiIcons from 'react-icons/fi'
@@ -7,16 +7,15 @@ import SafeIcon from '../../components/common/SafeIcon'
 
 const { FiCreditCard, FiCheckCircle, FiDownload, FiChevronRight, FiAlertCircle, FiStar, FiUsers, FiHardDrive, FiShield, FiZap } = FiIcons
 
-const BillingScreen = () => {
-  const { user } = useAuth()
+const EnhancedBillingScreen = () => {
+  const { user } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [companyData, setCompanyData] = useState(null)
+  const [subscriptionData, setSubscriptionData] = useState(null)
 
-  // Only admin users can access billing in a real app
-  const canAccessBilling = user?.role === 'admin' || user?.role === 'Owner'
-
-  if (!canAccessBilling) {
+  // Only admin users can access billing
+  if (user?.role !== 'admin') {
     return (
       <div className="max-w-4xl mx-auto p-4">
         <div className="card text-center py-12">
@@ -33,18 +32,21 @@ const BillingScreen = () => {
   }
 
   useEffect(() => {
-    loadBillingData()
-  }, [])
+    if (user?.company_id) {
+      loadBillingData()
+    }
+  }, [user?.company_id])
 
   const loadBillingData = async () => {
     try {
       setLoading(true)
       setError('')
       
-      // Mock company data for demo
+      // In production, these would be real API calls
+      // For now, using mock data based on user information
       const mockCompanyData = {
-        id: user?.company || 'demo-company',
-        name: user?.company || 'Your Company',
+        id: user.company_id,
+        name: user.company || 'Your Company',
         stripe_customer_id: 'cus_mock123',
         subscription_status: 'active',
         plan_id: 'admin_plan',
@@ -56,7 +58,15 @@ const BillingScreen = () => {
         next_billing_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       }
 
+      const mockSubscriptionData = {
+        current_period_start: new Date(Date.now() - 23 * 24 * 60 * 60 * 1000).toISOString(),
+        current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        cancel_at_period_end: false,
+        trial_end: null
+      }
+
       setCompanyData(mockCompanyData)
+      setSubscriptionData(mockSubscriptionData)
     } catch (err) {
       console.error('Error loading billing data:', err)
       setError('Failed to load billing information')
@@ -340,4 +350,4 @@ const BillingScreen = () => {
   )
 }
 
-export default BillingScreen
+export default EnhancedBillingScreen

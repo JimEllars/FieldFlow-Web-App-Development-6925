@@ -1,7 +1,70 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { services } from '../services/supabaseService'
-import { useOfflineStore } from './offlineStore'
+
+// Sample data for testing
+const sampleProjects = [
+  {
+    id: '1',
+    name: 'Residential Deck Construction',
+    description: 'Build a 20x16 composite deck with pergola and outdoor kitchen area',
+    client: 'Johnson Family',
+    status: 'active',
+    progress: 65,
+    startDate: '2024-11-01',
+    endDate: '2024-12-15',
+    budget: 15000,
+    spent: 9750,
+    address: '123 Oak Street, Springfield, IL 62701',
+    team: ['Mike Rodriguez', 'Sarah Chen', 'Tom Wilson'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: '2',
+    name: 'Commercial Landscaping Project',
+    description: 'Complete landscape design and installation for new office complex',
+    client: 'Springfield Business Park',
+    status: 'active',
+    progress: 30,
+    startDate: '2024-12-01',
+    endDate: '2025-02-28',
+    budget: 45000,
+    spent: 13500,
+    address: '456 Business Drive, Springfield, IL 62702',
+    team: ['Lisa Martinez', 'David Park'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+]
+
+const sampleTasks = [
+  {
+    id: '1',
+    projectId: '1',
+    title: 'Install deck framing',
+    description: 'Build the structural frame for the deck using pressure-treated lumber',
+    status: 'completed',
+    priority: 'high',
+    assignee: 'Mike Rodriguez',
+    dueDate: '2024-11-15',
+    estimatedHours: 16,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: '2',
+    projectId: '1',
+    title: 'Install composite decking',
+    description: 'Lay composite decking boards and secure with hidden fasteners',
+    status: 'in-progress',
+    priority: 'high',
+    assignee: 'Sarah Chen',
+    dueDate: '2024-12-01',
+    estimatedHours: 12,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+]
 
 // Centralized data store replacing DataContext
 export const useDataStore = create(
@@ -9,8 +72,8 @@ export const useDataStore = create(
     (set, get) => ({
       // Data state
       data: {
-        projects: [],
-        tasks: [],
+        projects: sampleProjects,
+        tasks: sampleTasks,
         dailyLogs: [],
         timeEntries: [],
         documents: []
@@ -19,135 +82,58 @@ export const useDataStore = create(
       error: null,
       lastSync: null,
 
-      // Cache management
-      cache: new Map(),
-      cacheExpiry: 5 * 60 * 1000, // 5 minutes
-
       // Actions
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
       clearError: () => set({ error: null }),
 
-      // Enhanced data loading with intelligent caching
+      // Load all data
       loadAllData: async (userId, force = false) => {
-        const state = get()
-        
-        // Check cache first unless force refresh
-        const cacheKey = `all-data-${userId}`
-        const cached = state.cache.get(cacheKey)
-        const now = Date.now()
-        
-        if (!force && cached && (now - cached.timestamp) < state.cacheExpiry) {
-          set({ data: cached.data, loading: false })
-          return cached.data
-        }
-
         set({ loading: true, error: null })
-
         try {
-          // Load data in parallel with error handling
-          const [projects, tasks, dailyLogs, timeEntries, documents] = await Promise.allSettled([
-            services.projects.getProjectsWithStats(userId),
-            services.tasks.getAll(userId),
-            services.dailyLogs.getAll(userId),
-            services.timeEntries.getAll(userId),
-            services.documents.getAll(userId)
-          ])
-
-          // Process results and handle partial failures gracefully
-          const newData = {
-            projects: projects.status === 'fulfilled' ? projects.value : [],
-            tasks: tasks.status === 'fulfilled' ? tasks.value : [],
-            dailyLogs: dailyLogs.status === 'fulfilled' ? dailyLogs.value : [],
-            timeEntries: timeEntries.status === 'fulfilled' ? timeEntries.value : [],
-            documents: documents.status === 'fulfilled' ? documents.value : []
-          }
-
-          // Update cache
-          state.cache.set(cacheKey, {
-            data: newData,
-            timestamp: now
-          })
-
+          // In a real app, this would load from API
+          // For now, we just use the sample data
+          await new Promise(resolve => setTimeout(resolve, 500)) // Simulate loading
+          
           set({ 
-            data: newData, 
             loading: false, 
             lastSync: new Date().toISOString() 
           })
-
-          // Log any partial failures
-          const failures = [projects, tasks, dailyLogs, timeEntries, documents]
-            .filter(result => result.status === 'rejected')
-          
-          if (failures.length > 0) {
-            console.warn('Some data failed to load:', failures)
-          }
-
-          return newData
         } catch (error) {
-          console.error('Error loading data:', error)
           set({ error: error.message, loading: false })
-          throw error
         }
       },
 
-      // Optimistic CRUD operations with enhanced error handling
+      // Project CRUD operations
       createProject: async (projectData, options = {}) => {
-        const { userId, onSuccess, onError, priority = 'high' } = options
-        
+        const { onSuccess, onError } = options
         try {
-          // Generate optimistic ID
-          const optimisticId = `temp-project-${Date.now()}`
-          const optimisticProject = {
-            id: optimisticId,
+          const newProject = {
+            id: Date.now().toString(),
             ...projectData,
             progress: 0,
             spent: 0,
-            taskCount: 0,
-            completedTasks: 0,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
 
-          // Add optimistically to store
           set(state => ({
             data: {
               ...state.data,
-              projects: [optimisticProject, ...state.data.projects]
+              projects: [newProject, ...state.data.projects]
             }
           }))
 
-          // Add to offline queue
-          useOfflineStore.getState().addPendingChange({
-            type: 'create',
-            entity: 'projects',
-            data: projectData,
-            optimisticId,
-            priority,
-            userId
-          })
-
-          // Call success callback immediately
-          if (onSuccess) onSuccess(optimisticProject)
-
-          return { success: true, data: optimisticProject }
+          if (onSuccess) onSuccess(newProject)
+          return { success: true, data: newProject }
         } catch (error) {
-          // Remove optimistic update on error
-          set(state => ({
-            data: {
-              ...state.data,
-              projects: state.data.projects.filter(p => !p.id.startsWith('temp-'))
-            }
-          }))
-          
           if (onError) onError(error)
           throw error
         }
       },
 
       updateProject: async (projectId, updates, options = {}) => {
-        const { onSuccess, onError, priority = 'normal' } = options
-        
+        const { onSuccess, onError } = options
         try {
           const state = get()
           const existingProject = state.data.projects.find(p => p.id === projectId)
@@ -156,33 +142,23 @@ export const useDataStore = create(
             throw new Error('Project not found')
           }
 
-          const optimisticUpdate = {
+          const updatedProject = {
             ...existingProject,
             ...updates,
             updatedAt: new Date().toISOString()
           }
 
-          // Update optimistically
           set(state => ({
             data: {
               ...state.data,
               projects: state.data.projects.map(p => 
-                p.id === projectId ? optimisticUpdate : p
+                p.id === projectId ? updatedProject : p
               )
             }
           }))
 
-          // Add to offline queue
-          useOfflineStore.getState().addPendingChange({
-            type: 'update',
-            entity: 'projects',
-            id: projectId,
-            data: updates,
-            priority
-          })
-
-          if (onSuccess) onSuccess(optimisticUpdate)
-          return { success: true, data: optimisticUpdate }
+          if (onSuccess) onSuccess(updatedProject)
+          return { success: true, data: updatedProject }
         } catch (error) {
           if (onError) onError(error)
           throw error
@@ -190,36 +166,18 @@ export const useDataStore = create(
       },
 
       deleteProject: async (projectId, options = {}) => {
-        const { onSuccess, onError, priority = 'normal' } = options
-        
+        const { onSuccess, onError } = options
         try {
-          const state = get()
-          const projectToDelete = state.data.projects.find(p => p.id === projectId)
-          
-          if (!projectToDelete) {
-            throw new Error('Project not found')
-          }
-
-          // Remove optimistically
           set(state => ({
             data: {
               ...state.data,
               projects: state.data.projects.filter(p => p.id !== projectId),
-              // Also remove related data
               tasks: state.data.tasks.filter(t => t.projectId !== projectId),
               dailyLogs: state.data.dailyLogs.filter(d => d.projectId !== projectId),
               timeEntries: state.data.timeEntries.filter(t => t.projectId !== projectId),
               documents: state.data.documents.filter(d => d.projectId !== projectId)
             }
           }))
-
-          // Add to offline queue
-          useOfflineStore.getState().addPendingChange({
-            type: 'delete',
-            entity: 'projects',
-            id: projectId,
-            priority
-          })
 
           if (onSuccess) onSuccess()
           return { success: true }
@@ -229,14 +187,12 @@ export const useDataStore = create(
         }
       },
 
-      // Similar optimistic operations for other entities
+      // Task CRUD operations
       createTask: async (taskData, options = {}) => {
-        const { onSuccess, onError, priority = 'normal' } = options
-        
+        const { onSuccess, onError } = options
         try {
-          const optimisticId = `temp-task-${Date.now()}`
-          const optimisticTask = {
-            id: optimisticId,
+          const newTask = {
+            id: Date.now().toString(),
             ...taskData,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -245,20 +201,12 @@ export const useDataStore = create(
           set(state => ({
             data: {
               ...state.data,
-              tasks: [optimisticTask, ...state.data.tasks]
+              tasks: [newTask, ...state.data.tasks]
             }
           }))
 
-          useOfflineStore.getState().addPendingChange({
-            type: 'create',
-            entity: 'tasks',
-            data: taskData,
-            optimisticId,
-            priority: taskData.priority === 'high' ? 'high' : priority
-          })
-
-          if (onSuccess) onSuccess(optimisticTask)
-          return { success: true, data: optimisticTask }
+          if (onSuccess) onSuccess(newTask)
+          return { success: true, data: newTask }
         } catch (error) {
           if (onError) onError(error)
           throw error
@@ -266,8 +214,7 @@ export const useDataStore = create(
       },
 
       updateTask: async (taskId, updates, options = {}) => {
-        const { onSuccess, onError, priority = 'normal' } = options
-        
+        const { onSuccess, onError } = options
         try {
           const state = get()
           const existingTask = state.data.tasks.find(t => t.id === taskId)
@@ -276,7 +223,7 @@ export const useDataStore = create(
             throw new Error('Task not found')
           }
 
-          const optimisticUpdate = {
+          const updatedTask = {
             ...existingTask,
             ...updates,
             updatedAt: new Date().toISOString()
@@ -286,21 +233,13 @@ export const useDataStore = create(
             data: {
               ...state.data,
               tasks: state.data.tasks.map(t => 
-                t.id === taskId ? optimisticUpdate : t
+                t.id === taskId ? updatedTask : t
               )
             }
           }))
 
-          useOfflineStore.getState().addPendingChange({
-            type: 'update',
-            entity: 'tasks',
-            id: taskId,
-            data: updates,
-            priority: updates.priority === 'high' || existingTask.priority === 'high' ? 'high' : priority
-          })
-
-          if (onSuccess) onSuccess(optimisticUpdate)
-          return { success: true, data: optimisticUpdate }
+          if (onSuccess) onSuccess(updatedTask)
+          return { success: true, data: updatedTask }
         } catch (error) {
           if (onError) onError(error)
           throw error
@@ -308,8 +247,7 @@ export const useDataStore = create(
       },
 
       deleteTask: async (taskId, options = {}) => {
-        const { onSuccess, onError, priority = 'normal' } = options
-        
+        const { onSuccess, onError } = options
         try {
           set(state => ({
             data: {
@@ -317,13 +255,6 @@ export const useDataStore = create(
               tasks: state.data.tasks.filter(t => t.id !== taskId)
             }
           }))
-
-          useOfflineStore.getState().addPendingChange({
-            type: 'delete',
-            entity: 'tasks',
-            id: taskId,
-            priority
-          })
 
           if (onSuccess) onSuccess()
           return { success: true }
@@ -333,7 +264,7 @@ export const useDataStore = create(
         }
       },
 
-      // Getter functions with caching
+      // Getter functions
       getProjectById: (id) => {
         const state = get()
         return state.data.projects.find(p => p.id === id)
@@ -367,14 +298,6 @@ export const useDataStore = create(
       getDocumentById: (id) => {
         const state = get()
         return state.data.documents.find(d => d.id === id)
-      },
-
-      // Cache management
-      clearCache: () => {
-        set(state => {
-          state.cache.clear()
-          return { cache: new Map() }
-        })
       },
 
       // Pull to refresh functionality

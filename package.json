@@ -1,12 +1,13 @@
 {
   "name": "fieldflow-mobile",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "analyze": "npx vite-bundle-analyzer"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -19,13 +20,21 @@
     "react-error-boundary": "^4.0.11",
     "@supabase/supabase-js": "^2.39.0",
     "browser-image-compression": "^2.0.2",
-    "web-vitals": "^3.5.0"
+    "web-vitals": "^3.5.0",
+    "@stripe/stripe-js": "^2.4.0",
+    "@stripe/react-stripe-js": "^2.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.1.0",
     "tailwindcss": "^3.4.1",
     "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.35"
+    "postcss": "^8.4.35",
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "eslint-plugin-react-refresh": "^0.4.9",
+    "globals": "^15.9.0"
   }
 }
