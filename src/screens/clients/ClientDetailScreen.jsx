@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { clientService } from '../../services/clientService'
+import { useDataStore } from '../../stores/dataStore'
 import { format } from 'date-fns'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
@@ -13,9 +14,10 @@ const ClientDetailScreen = () => {
   const { clientId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { data } = useDataStore()
   
   const [client, setClient] = useState(null)
-  const [projects, setProjects] = useState([])
+  const [clientProjects, setClientProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -31,13 +33,53 @@ const ClientDetailScreen = () => {
       setLoading(true)
       setError('')
       
-      const [clientData, projectsData] = await Promise.all([
-        clientService.getById(clientId),
-        clientService.getClientProjects(clientId)
-      ])
-      
-      setClient(clientData)
-      setProjects(projectsData)
+      if (import.meta.env.VITE_TEST_MODE === 'true') {
+        // Mock client data for test mode
+        const mockClients = [
+          {
+            id: 'client-1',
+            name: 'Johnson Family',
+            email: 'sarah.johnson@email.com',
+            phone_number: '(555) 123-4567',
+            address: '123 Oak Street, Springfield, IL 62701',
+            notes: 'Preferred client - always pays on time. Interested in future landscaping projects.',
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'client-2',
+            name: 'Springfield Business Park',
+            email: 'maintenance@springfieldpark.com',
+            phone_number: '(555) 987-6543',
+            address: '456 Business Drive, Springfield, IL 62702',
+            notes: 'Commercial client - requires all work to be completed after business hours.',
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'client-3',
+            name: 'Smith Residence',
+            email: 'mike.smith@email.com',
+            phone_number: '(555) 555-0123',
+            address: '789 Maple Ave, Springfield, IL 62703',
+            notes: 'New client - referred by Johnson Family. Very detail-oriented.',
+            created_at: new Date().toISOString()
+          }
+        ]
+        
+        const clientData = mockClients.find(c => c.id === clientId)
+        setClient(clientData)
+        
+        // Get projects for this client from the data store
+        const projectsForClient = data.projects.filter(p => p.client_id === clientId || p.client === clientData?.name)
+        setClientProjects(projectsForClient)
+      } else {
+        // Production mode
+        const [clientData, projectsData] = await Promise.all([
+          clientService.getById(clientId),
+          clientService.getClientProjects(clientId)
+        ])
+        setClient(clientData)
+        setClientProjects(projectsData)
+      }
     } catch (err) {
       console.error('Error loading client data:', err)
       setError('Failed to load client information')
@@ -48,8 +90,13 @@ const ClientDetailScreen = () => {
 
   const handleDeleteClient = async () => {
     try {
-      await clientService.delete(clientId)
-      navigate('/app/clients')
+      if (import.meta.env.VITE_TEST_MODE === 'true') {
+        // In test mode, just navigate back
+        navigate('/app/clients')
+      } else {
+        await clientService.delete(clientId)
+        navigate('/app/clients')
+      }
     } catch (err) {
       console.error('Error deleting client:', err)
       setError('Failed to delete client')
@@ -114,7 +161,6 @@ const ClientDetailScreen = () => {
             </p>
           </div>
         </div>
-        
         <div className="flex items-center space-x-2">
           <Link
             to={`/app/clients/${clientId}/edit`}
@@ -136,7 +182,6 @@ const ClientDetailScreen = () => {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           Contact Information
         </h2>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-center">
@@ -146,7 +191,7 @@ const ClientDetailScreen = () => {
                 <p className="font-medium text-gray-900 dark:text-gray-100">{client.name}</p>
               </div>
             </div>
-
+            
             {client.email && (
               <div className="flex items-center">
                 <SafeIcon icon={FiMail} className="w-5 h-5 text-gray-500 mr-3" />
@@ -161,7 +206,7 @@ const ClientDetailScreen = () => {
                 </div>
               </div>
             )}
-
+            
             {client.phone_number && (
               <div className="flex items-center">
                 <SafeIcon icon={FiPhone} className="w-5 h-5 text-gray-500 mr-3" />
@@ -177,7 +222,7 @@ const ClientDetailScreen = () => {
               </div>
             )}
           </div>
-
+          
           <div className="space-y-4">
             {client.address && (
               <div className="flex items-start">
@@ -188,7 +233,7 @@ const ClientDetailScreen = () => {
                 </div>
               </div>
             )}
-
+            
             <div className="flex items-center">
               <SafeIcon icon={FiCalendar} className="w-5 h-5 text-gray-500 mr-3" />
               <div>
@@ -200,7 +245,7 @@ const ClientDetailScreen = () => {
             </div>
           </div>
         </div>
-
+        
         {client.notes && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -217,7 +262,7 @@ const ClientDetailScreen = () => {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Projects ({projects.length})
+            Projects ({clientProjects.length})
           </h2>
           <Link
             to={`/app/projects/new?clientId=${clientId}`}
@@ -227,8 +272,8 @@ const ClientDetailScreen = () => {
             New Project
           </Link>
         </div>
-
-        {projects.length === 0 ? (
+        
+        {clientProjects.length === 0 ? (
           <div className="text-center py-8">
             <SafeIcon icon={FiFolder} className="w-8 h-8 text-gray-400 mx-auto mb-3" />
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -246,7 +291,7 @@ const ClientDetailScreen = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {projects.map((project) => (
+            {clientProjects.map((project) => (
               <Link
                 key={project.id}
                 to={`/app/projects/${project.id}`}
@@ -257,7 +302,7 @@ const ClientDetailScreen = () => {
                     {project.name}
                   </h3>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    project.status === 'active' 
+                    project.status === 'active'
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                       : project.status === 'planning'
                       ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'

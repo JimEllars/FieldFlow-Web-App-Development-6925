@@ -5,10 +5,7 @@ import { useAppStore } from '../../stores/appStore'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from './SafeIcon'
 
-const { 
-  FiX, FiRefreshCw, FiTrash2, FiEye, FiAlertCircle, 
-  FiCheckCircle, FiClock, FiWifi, FiWifiOff, FiActivity 
-} = FiIcons
+const { FiX, FiRefreshCw, FiTrash2, FiEye, FiAlertCircle, FiCheckCircle, FiClock, FiWifi, FiWifiOff, FiActivity } = FiIcons
 
 const SyncStatusModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('pending')
@@ -24,7 +21,7 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
     forceSyncAll,
     processPendingChanges
   } = useOfflineStore()
-
+  
   const addNotification = useAppStore(state => state.addNotification)
   const syncStatus = getSyncStatus()
 
@@ -107,14 +104,10 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high':
-        return 'text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400'
-      case 'normal':
-        return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400'
-      case 'low':
-        return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400'
-      default:
-        return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400'
+      case 'high': return 'text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400'
+      case 'normal': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'low': return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400'
+      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400'
     }
   }
 
@@ -136,6 +129,7 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
 
             {/* Modal */}
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -147,10 +141,7 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
-                      <SafeIcon 
-                        icon={isOnline ? FiWifi : FiWifiOff} 
-                        className="w-6 h-6 text-primary-600 dark:text-primary-400" 
-                      />
+                      <SafeIcon icon={isOnline ? FiWifi : FiWifiOff} className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                     </div>
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -190,7 +181,7 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                       </div>
                     )}
                   </div>
-
+                  
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleForceSync}
@@ -276,10 +267,7 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                       </div>
                     ) : (
                       pendingChanges.map((change, index) => (
-                        <div
-                          key={change.id}
-                          className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg"
-                        >
+                        <div key={change.id} className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3">
                               <div className="flex items-center space-x-2">
@@ -293,12 +281,17 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                               </span>
                             </div>
                             <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                              {formatTimeAgo(change.timestamp)}
-                              {change.estimatedDuration && (
-                                <span className="ml-2">
-                                  • ~{Math.round(change.estimatedDuration / 1000)}s
-                                </span>
-                              )}
+                              {/* Enhanced details display */}
+                              <div className="space-y-1">
+                                <div>Details: {change.data?.name || change.data?.title || 'N/A'}</div>
+                                <div>Timestamp: {new Date(change.timestamp).toLocaleTimeString()}</div>
+                                {formatTimeAgo(change.timestamp)}
+                                {change.estimatedDuration && (
+                                  <span className="ml-2">
+                                    • ~{Math.round(change.estimatedDuration / 1000)}s
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -344,12 +337,9 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                             </button>
                           </div>
                         </div>
-                        
+
                         {failedChanges.map((change) => (
-                          <div
-                            key={change.id}
-                            className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg"
-                          >
+                          <div key={change.id} className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3">
@@ -370,9 +360,10 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                                   <p className="text-sm text-red-700 dark:text-red-400">
                                     {change.error}
                                   </p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Last failed: {formatTimeAgo(change.lastFailedAt || change.timestamp)}
-                                  </p>
+                                  <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    <div>Details: {change.data?.name || change.data?.title || 'N/A'}</div>
+                                    <div>Last failed: {formatTimeAgo(change.lastFailedAt || change.timestamp)}</div>
+                                  </div>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-1 ml-4">

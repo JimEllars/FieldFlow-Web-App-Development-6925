@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { clientService } from '../../services/clientService'
+import { useAppStore } from '../../stores/appStore'
 import { useFormValidation } from '../../hooks/useFormValidation'
 import { validators } from '../../utils/validation'
 import * as FiIcons from 'react-icons/fi'
@@ -12,6 +13,7 @@ const { FiArrowLeft, FiSave, FiUser, FiMail, FiPhone, FiMapPin, FiFileText, FiAl
 const CreateClientScreen = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const addNotification = useAppStore(state => state.addNotification)
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -56,15 +58,37 @@ const CreateClientScreen = () => {
     
     setIsSubmitting(true)
     setSubmitError('')
-    
+
     try {
-      const clientData = {
-        ...validatedData,
-        company_id: user.company_id
+      if (import.meta.env.VITE_TEST_MODE === 'true') {
+        // Test mode - simulate client creation
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        const newClient = {
+          id: `client-${Date.now()}`,
+          ...validatedData,
+          company_id: user.company_id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        
+        addNotification({
+          type: 'success',
+          title: 'Client Created',
+          message: `${newClient.name} has been added successfully`
+        })
+        
+        navigate(`/app/clients/${newClient.id}`)
+      } else {
+        // Production mode
+        const clientData = {
+          ...validatedData,
+          company_id: user.company_id
+        }
+        
+        const newClient = await clientService.create(clientData)
+        navigate(`/app/clients/${newClient.id}`)
       }
-      
-      const newClient = await clientService.create(clientData)
-      navigate(`/app/clients/${newClient.id}`)
     } catch (error) {
       console.error('Failed to create client:', error)
       setSubmitError(error.message || 'Failed to create client')
