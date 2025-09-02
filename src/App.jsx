@@ -144,18 +144,14 @@ function App() {
             {/* Root redirect */}
             <Route 
               path="/" 
-              element={
-                isAuthenticated ? 
-                <Navigate to="/app" replace /> : 
-                <Navigate to="/auth/login" replace />
-              } 
+              element={isAuthenticated ? <Navigate to="/app" replace /> : <Navigate to="/auth/login" replace />} 
             />
             
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-
+        
         {/* Global Components */}
         <NotificationSystem />
         <PerformanceMonitor />

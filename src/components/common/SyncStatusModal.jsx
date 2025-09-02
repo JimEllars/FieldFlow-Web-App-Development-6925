@@ -9,6 +9,7 @@ const { FiX, FiRefreshCw, FiTrash2, FiEye, FiAlertCircle, FiCheckCircle, FiClock
 
 const SyncStatusModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('pending')
+  
   const {
     pendingChanges,
     failedChanges,
@@ -173,7 +174,6 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                       <SafeIcon icon={isOnline ? FiWifi : FiWifiOff} className="w-4 h-4" />
                       <span>{isOnline ? 'Online' : 'Offline'}</span>
                     </div>
-                    
                     {syncInProgress && (
                       <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
                         <SafeIcon icon={FiRefreshCw} className="w-4 h-4 animate-spin" />
@@ -181,7 +181,6 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                       </div>
                     )}
                   </div>
-                  
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleForceSync}
@@ -267,7 +266,10 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                       </div>
                     ) : (
                       pendingChanges.map((change, index) => (
-                        <div key={change.id} className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div
+                          key={change.id}
+                          className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg"
+                        >
                           <div className="flex-1">
                             <div className="flex items-center space-x-3">
                               <div className="flex items-center space-x-2">
@@ -337,9 +339,11 @@ const SyncStatusModal = ({ isOpen, onClose }) => {
                             </button>
                           </div>
                         </div>
-
                         {failedChanges.map((change) => (
-                          <div key={change.id} className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg">
+                          <div
+                            key={change.id}
+                            className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg"
+                          >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3">

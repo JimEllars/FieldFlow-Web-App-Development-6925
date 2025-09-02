@@ -192,14 +192,12 @@ const ClientsScreen = () => {
                           <span className="truncate">{client.email}</span>
                         </div>
                       )}
-                      
                       {client.phone_number && (
                         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                           <SafeIcon icon={FiPhone} className="w-4 h-4 mr-2" />
                           <span>{client.phone_number}</span>
                         </div>
                       )}
-                      
                       {client.address && (
                         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                           <SafeIcon icon={FiMapPin} className="w-4 h-4 mr-2" />
@@ -207,7 +205,7 @@ const ClientsScreen = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     {client.notes && (
                       <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm text-gray-600 dark:text-gray-400">
                         <p className="line-clamp-2">{client.notes}</p>

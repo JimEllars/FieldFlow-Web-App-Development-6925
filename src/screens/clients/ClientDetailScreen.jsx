@@ -69,7 +69,9 @@ const ClientDetailScreen = () => {
         setClient(clientData)
         
         // Get projects for this client from the data store
-        const projectsForClient = data.projects.filter(p => p.client_id === clientId || p.client === clientData?.name)
+        const projectsForClient = data.projects.filter(p => 
+          p.client_id === clientId || p.client === clientData?.name
+        )
         setClientProjects(projectsForClient)
       } else {
         // Production mode
@@ -77,6 +79,7 @@ const ClientDetailScreen = () => {
           clientService.getById(clientId),
           clientService.getClientProjects(clientId)
         ])
+        
         setClient(clientData)
         setClientProjects(projectsData)
       }
@@ -206,7 +209,7 @@ const ClientDetailScreen = () => {
                 </div>
               </div>
             )}
-            
+
             {client.phone_number && (
               <div className="flex items-center">
                 <SafeIcon icon={FiPhone} className="w-5 h-5 text-gray-500 mr-3" />
@@ -222,7 +225,7 @@ const ClientDetailScreen = () => {
               </div>
             )}
           </div>
-          
+
           <div className="space-y-4">
             {client.address && (
               <div className="flex items-start">
@@ -233,7 +236,7 @@ const ClientDetailScreen = () => {
                 </div>
               </div>
             )}
-            
+
             <div className="flex items-center">
               <SafeIcon icon={FiCalendar} className="w-5 h-5 text-gray-500 mr-3" />
               <div>
@@ -245,7 +248,7 @@ const ClientDetailScreen = () => {
             </div>
           </div>
         </div>
-        
+
         {client.notes && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -272,7 +275,7 @@ const ClientDetailScreen = () => {
             New Project
           </Link>
         </div>
-        
+
         {clientProjects.length === 0 ? (
           <div className="text-center py-8">
             <SafeIcon icon={FiFolder} className="w-8 h-8 text-gray-400 mx-auto mb-3" />
@@ -311,13 +314,11 @@ const ClientDetailScreen = () => {
                     {project.status}
                   </span>
                 </div>
-                
                 {project.description && (
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                     {project.description}
                   </p>
                 )}
-                
                 <div className="flex items-center justify-between mt-3">
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     Budget: ${project.budget?.toLocaleString() || '0'}
@@ -339,9 +340,7 @@ const ClientDetailScreen = () => {
             <div className="fixed inset-0 transition-opacity" aria-hidden="true">
               <div className="absolute inset-0 bg-gray-500 dark:bg-gray-800 opacity-75"></div>
             </div>
-            
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            
             <div className="inline-block align-bottom bg-white dark:bg-gray-900 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white dark:bg-gray-900 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
