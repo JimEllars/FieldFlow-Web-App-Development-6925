@@ -1,37 +1,61 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '../../contexts/AuthContext'
-import { useTheme } from '../../contexts/ThemeContext'
+import { useAuthStore } from '../../stores/authStore'
+import { useAppStore } from '../../stores/appStore'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../common/SafeIcon'
 
 const {
-  FiHome, FiFolder, FiCalendar, FiCheckSquare, FiFileText, FiClock, FiUser,
+  FiHome, FiFolder, FiCalendar, FiCheckSquare, FiFileText, FiClock, FiUser, FiUsers,
   FiSettings, FiCreditCard, FiLogOut, FiX, FiSun, FiMoon, FiTestTube
 } = FiIcons
 
 const MobileMenu = ({ isOpen, onClose }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout, testMode } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { user, logout } = useAuthStore()
+  const { theme, setTheme } = useAppStore()
 
-  const mainNavItems = [
-    { path: '/app/dashboard', icon: FiHome, label: 'Dashboard' },
-    { path: '/app/projects', icon: FiFolder, label: 'Projects' },
-    { path: '/app/schedule', icon: FiCalendar, label: 'Schedule' },
-    { path: '/app/tasks', icon: FiCheckSquare, label: 'Tasks' },
-    { path: '/app/daily-logs', icon: FiFileText, label: 'Daily Logs' },
-    { path: '/app/time-tracking', icon: FiClock, label: 'Time Tracking' },
-    { path: '/app/documents', icon: FiFileText, label: 'Documents' }
-  ]
+  // Enhanced navigation based on user role
+  const getMainNavItems = () => {
+    const baseItems = [
+      { path: '/app/dashboard', icon: FiHome, label: 'Dashboard' },
+      { path: '/app/projects', icon: FiFolder, label: 'Projects' },
+      { path: '/app/schedule', icon: FiCalendar, label: 'Schedule' },
+      { path: '/app/tasks', icon: FiCheckSquare, label: 'Tasks' },
+      { path: '/app/daily-logs', icon: FiFileText, label: 'Daily Logs' },
+      { path: '/app/time-tracking', icon: FiClock, label: 'Time Tracking' },
+      { path: '/app/documents', icon: FiFileText, label: 'Documents' }
+    ]
 
-  const accountItems = [
-    { path: '/app/profile', icon: FiUser, label: 'Profile' },
-    { path: '/app/settings', icon: FiSettings, label: 'Settings' },
-    { path: '/app/billing', icon: FiCreditCard, label: 'Billing' }
-  ]
+    // Add CRM for all users
+    baseItems.splice(2, 0, { path: '/app/clients', icon: FiUsers, label: 'Clients' })
+
+    // Add team management for admins
+    if (user?.role === 'admin') {
+      baseItems.splice(3, 0, { path: '/app/team', icon: FiUsers, label: 'Team Management' })
+    }
+
+    return baseItems
+  }
+
+  const getAccountItems = () => {
+    const baseItems = [
+      { path: '/app/profile', icon: FiUser, label: 'Profile' },
+      { path: '/app/settings', icon: FiSettings, label: 'Settings' }
+    ]
+
+    // Add billing for admins only
+    if (user?.role === 'admin') {
+      baseItems.push({ path: '/app/billing', icon: FiCreditCard, label: 'Billing' })
+    }
+
+    return baseItems
+  }
+
+  const mainNavItems = getMainNavItems()
+  const accountItems = getAccountItems()
 
   const isActive = (path) => {
     return location.pathname.startsWith(path)
@@ -40,6 +64,11 @@ const MobileMenu = ({ isOpen, onClose }) => {
   const handleNavigation = (path) => {
     navigate(path)
     onClose()
+  }
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
   }
 
   const handleLogout = async () => {
@@ -77,10 +106,10 @@ const MobileMenu = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                   <h2 className="font-semibold text-gray-900 dark:text-gray-100">FieldFlow</h2>
-                  {testMode && (
+                  {import.meta.env.VITE_TEST_MODE === 'true' && (
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
                       <SafeIcon icon={FiTestTube} className="w-3 h-3 mr-1" />
-                      Test
+                      Test Mode
                     </span>
                   )}
                 </div>
@@ -108,15 +137,26 @@ const MobileMenu = ({ isOpen, onClose }) => {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {user?.company || 'Company'}
                   </p>
-                  {user?.subscription && (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${
-                      user.subscription.status === 'active'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                    }`}>
-                      {user.subscription.plan} Plan
-                    </span>
-                  )}
+                  <div className="flex items-center space-x-2 mt-1">
+                    {user?.role && (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        user.role === 'admin' 
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                      }`}>
+                        {user.role === 'admin' ? 'Administrator' : 'Team Member'}
+                      </span>
+                    )}
+                    {user?.subscription && (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        user.subscription.status === 'active' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                      }`}>
+                        {user.subscription.plan} Plan
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -175,10 +215,7 @@ const MobileMenu = ({ isOpen, onClose }) => {
                   onClick={toggleTheme}
                   className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  <SafeIcon 
-                    icon={theme === 'dark' ? FiSun : FiMoon} 
-                    className="w-5 h-5 mr-3" 
-                  />
+                  <SafeIcon icon={theme === 'dark' ? FiSun : FiMoon} className="w-5 h-5 mr-3" />
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </button>
               </div>

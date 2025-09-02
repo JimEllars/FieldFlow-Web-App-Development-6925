@@ -39,6 +39,7 @@ const SettingsScreen = lazy(() => import('./screens/settings/SettingsScreen'))
 const ClientsScreen = lazy(() => import('./screens/clients/ClientsScreen'))
 const ClientDetailScreen = lazy(() => import('./screens/clients/ClientDetailScreen'))
 const CreateClientScreen = lazy(() => import('./screens/clients/CreateClientScreen'))
+const TeamScreen = lazy(() => import('./screens/team/TeamScreen'))
 const BillingScreen = lazy(() => import('./screens/billing/BillingScreen'))
 
 function App() {
@@ -109,6 +110,9 @@ function App() {
               <Route path="clients/new" element={<CreateClientScreen />} />
               <Route path="clients/:clientId" element={<ClientDetailScreen />} />
               
+              {/* Team Management (Admin Only) */}
+              <Route path="team" element={<TeamScreen />} />
+              
               {/* Task Management */}
               <Route path="tasks" element={<TasksScreen />} />
               <Route path="tasks/new" element={<CreateTaskScreen />} />
@@ -133,7 +137,7 @@ function App() {
               <Route path="profile" element={<ProfileScreen />} />
               <Route path="settings" element={<SettingsScreen />} />
               
-              {/* Billing */}
+              {/* Billing (Admin Only) */}
               <Route path="billing" element={<BillingScreen />} />
             </Route>
 
