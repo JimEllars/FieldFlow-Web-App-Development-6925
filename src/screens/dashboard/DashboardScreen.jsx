@@ -1,8 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
-import { useData } from '../../contexts/DataContext'
-import { useOffline } from '../../contexts/OfflineContext'
+import { useAuthStore } from '../../stores/authStore'
+import { useDataStore } from '../../stores/dataStore'
 import { format } from 'date-fns'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
@@ -10,9 +9,8 @@ import SafeIcon from '../../components/common/SafeIcon'
 const { FiFolder, FiCheckSquare, FiClock, FiFileText, FiTrendingUp, FiUsers, FiCalendar, FiPlus } = FiIcons
 
 const DashboardScreen = () => {
-  const { user } = useAuth()
-  const { data } = useData()
-  const { isOnline, pendingChanges } = useOffline()
+  const { user } = useAuthStore()
+  const { data } = useDataStore()
 
   const stats = {
     activeProjects: data.projects?.filter(p => p.status === 'active').length || 0,
@@ -28,10 +26,34 @@ const DashboardScreen = () => {
     .slice(0, 3)
 
   const quickActions = [
-    { title: 'New Daily Log', description: 'Record today\'s progress', icon: FiFileText, link: '/app/daily-logs/new', color: 'bg-blue-500' },
-    { title: 'Clock In', description: 'Start time tracking', icon: FiClock, link: '/app/time-tracking', color: 'bg-green-500' },
-    { title: 'View Tasks', description: 'Check assignments', icon: FiCheckSquare, link: '/app/tasks', color: 'bg-orange-500' },
-    { title: 'Browse Projects', description: 'Manage projects', icon: FiFolder, link: '/app/projects', color: 'bg-purple-500' }
+    {
+      title: 'New Daily Log',
+      description: 'Record today\'s progress',
+      icon: FiFileText,
+      link: '/app/daily-logs/new',
+      color: 'bg-blue-500'
+    },
+    {
+      title: 'Clock In',
+      description: 'Start time tracking',
+      icon: FiClock,
+      link: '/app/time-tracking',
+      color: 'bg-green-500'
+    },
+    {
+      title: 'View Tasks',
+      description: 'Check assignments',
+      icon: FiCheckSquare,
+      link: '/app/tasks',
+      color: 'bg-orange-500'
+    },
+    {
+      title: 'Browse Projects',
+      description: 'Manage projects',
+      icon: FiFolder,
+      link: '/app/projects',
+      color: 'bg-purple-500'
+    }
   ]
 
   return (
@@ -44,10 +66,12 @@ const DashboardScreen = () => {
         <p className="text-primary-100">
           {format(new Date(), 'EEEE, MMMM do, yyyy')}
         </p>
-        {!isOnline && (
+        {user?.subscription?.status === 'trial' && (
           <div className="mt-3 flex items-center text-primary-100">
-            <SafeIcon icon={FiCheckSquare} className="w-4 h-4 mr-2" />
-            <span className="text-sm">Working offline - {pendingChanges || 0} changes pending</span>
+            <SafeIcon icon={FiCalendar} className="w-4 h-4 mr-2" />
+            <span className="text-sm">
+              Trial Mode - {Math.ceil((new Date(user.subscription.expiresAt) - new Date()) / (1000 * 60 * 60 * 24))} days remaining
+            </span>
           </div>
         )}
       </div>
@@ -180,8 +204,8 @@ const DashboardScreen = () => {
                     </div>
                     <div className="text-right">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        project.status === 'active'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                        project.status === 'active' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
                       }`}>
                         {project.status}
@@ -190,9 +214,9 @@ const DashboardScreen = () => {
                   </div>
                   <div className="mt-2">
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${project.progress || 0}%` }}
+                      <div 
+                        className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${project.progress || 0}%` }} 
                       />
                     </div>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
@@ -246,7 +270,7 @@ const DashboardScreen = () => {
                     </div>
                     <div className="text-right">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        task.priority === 'high'
+                        task.priority === 'high' 
                           ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                           : task.priority === 'medium'
                           ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && vite preview --host",
     "analyze": "npx vite-bundle-analyzer"
   },
   "dependencies": {

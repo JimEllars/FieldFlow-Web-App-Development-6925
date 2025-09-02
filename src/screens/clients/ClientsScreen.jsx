@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
-import { clientService } from '../../services/clientService'
+import { useDataStore } from '../../stores/dataStore'
 import PullToRefresh from '../../components/common/PullToRefresh'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
@@ -11,42 +11,24 @@ const { FiSearch, FiPlus, FiUsers, FiMail, FiPhone, FiMapPin, FiChevronRight } =
 
 const ClientsScreen = () => {
   const { user } = useAuthStore()
-  const [clients, setClients] = useState([])
+  const { data, loading, loadAllData, pullToRefresh } = useDataStore()
   const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
 
   // Load clients on component mount
   useEffect(() => {
-    if (user?.company_id) {
-      loadClients()
+    if (user?.id && data.clients.length === 0) {
+      loadAllData(user.id)
     }
-  }, [user?.company_id])
-
-  const loadClients = async () => {
-    if (!user?.company_id) return
-    
-    try {
-      setLoading(true)
-      setError('')
-      const clientsData = await clientService.getAll(user.company_id)
-      setClients(clientsData)
-    } catch (err) {
-      console.error('Error loading clients:', err)
-      setError('Failed to load clients')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [user?.id, data.clients.length, loadAllData])
 
   // Handle pull to refresh
   const handleRefresh = async () => {
-    if (!user?.company_id || refreshing) return
+    if (!user?.id || refreshing) return
     
     setRefreshing(true)
     try {
-      await loadClients()
+      await pullToRefresh(user.id)
     } catch (error) {
       console.error('Refresh failed:', error)
     } finally {
@@ -55,24 +37,18 @@ const ClientsScreen = () => {
   }
 
   // Search clients
-  const handleSearch = async (term) => {
-    setSearchTerm(term)
+  const filteredClients = data.clients.filter(client => {
+    if (!searchTerm) return true
     
-    if (!term.trim()) {
-      loadClients()
-      return
-    }
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      client.name.toLowerCase().includes(searchLower) ||
+      client.email?.toLowerCase().includes(searchLower) ||
+      client.phone_number?.includes(searchTerm)
+    )
+  })
 
-    try {
-      const searchResults = await clientService.searchClients(user.company_id, term)
-      setClients(searchResults)
-    } catch (err) {
-      console.error('Search failed:', err)
-      setError('Search failed')
-    }
-  }
-
-  if (loading && clients.length === 0) {
+  if (loading && data.clients.length === 0) {
     return <LoadingSpinner text="Loading clients..." />
   }
 
@@ -91,7 +67,7 @@ const ClientsScreen = () => {
               placeholder="Search clients..."
               className="input-field pl-10"
               value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
@@ -106,15 +82,6 @@ const ClientsScreen = () => {
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="p-4">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-          </div>
-        </div>
-      )}
-
       {/* Clients List with Pull to Refresh */}
       <PullToRefresh
         onRefresh={handleRefresh}
@@ -122,7 +89,7 @@ const ClientsScreen = () => {
         className="min-h-screen"
       >
         <div className="p-4 space-y-4">
-          {clients.length === 0 ? (
+          {filteredClients.length === 0 ? (
             <div className="card text-center py-12">
               <SafeIcon icon={FiUsers} className="w-10 h-10 text-gray-400 mx-auto mb-3" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -142,7 +109,7 @@ const ClientsScreen = () => {
               )}
             </div>
           ) : (
-            clients.map((client) => (
+            filteredClients.map((client) => (
               <Link
                 key={client.id}
                 to={`/app/clients/${client.id}`}

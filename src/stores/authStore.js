@@ -12,18 +12,13 @@ export const useAuthStore = create(
       loading: false,
       isAuthenticated: false,
       session: null,
-
-      // Test mode configuration
-      testMode: import.meta.env.VITE_TEST_MODE === 'true' || true,
+      
+      // Test mode configuration - now dynamic based on environment
+      testMode: import.meta.env.VITE_TEST_MODE === 'true',
 
       // Actions
       setLoading: (loading) => set({ loading }),
-      
-      setUser: (user) => set({ 
-        user, 
-        isAuthenticated: !!user 
-      }),
-
+      setUser: (user) => set({ user, isAuthenticated: !!user }),
       setSession: (session) => set({ session }),
 
       // Enhanced login with better error handling
@@ -44,7 +39,8 @@ export const useAuthStore = create(
                 email: 'demo@fieldflow.com',
                 name: 'John Contractor',
                 company: 'Demo Construction Co.',
-                role: 'Owner',
+                company_id: '123e4567-e89b-12d3-a456-426614174000',
+                role: 'admin',
                 avatar: null,
                 subscription: {
                   plan: 'professional',
@@ -59,7 +55,8 @@ export const useAuthStore = create(
                 email: email,
                 name: email.split('@')[0] || 'Test User',
                 company: 'Test Company',
-                role: 'Owner',
+                company_id: `company-${Date.now()}`,
+                role: 'admin',
                 avatar: null,
                 subscription: {
                   plan: 'professional',
@@ -71,12 +68,7 @@ export const useAuthStore = create(
 
             // Store test user
             localStorage.setItem('fieldflow-test-user', JSON.stringify(testUser))
-            
-            set({ 
-              user: testUser, 
-              isAuthenticated: true, 
-              loading: false 
-            })
+            set({ user: testUser, isAuthenticated: true, loading: false })
 
             // Show success notification
             useAppStore.getState().addNotification({
@@ -101,7 +93,6 @@ export const useAuthStore = create(
 
           if (data.user) {
             await get().setUserFromSession(data.user)
-            
             useAppStore.getState().addNotification({
               type: 'success',
               title: 'Welcome back!',
@@ -111,16 +102,15 @@ export const useAuthStore = create(
 
           set({ loading: false })
           return { success: true, user: data.user }
+
         } catch (error) {
           console.error('Login error:', error)
           set({ loading: false })
-          
           useAppStore.getState().addNotification({
             type: 'error',
             title: 'Login Failed',
             message: error.message || 'An unexpected error occurred'
           })
-          
           return { success: false, error: error.message }
         }
       },
@@ -140,7 +130,8 @@ export const useAuthStore = create(
               email: userData.email,
               name: userData.name,
               company: userData.company,
-              role: 'Owner',
+              company_id: `company-${Date.now()}`,
+              role: 'admin',
               avatar: null,
               subscription: {
                 plan: 'trial',
@@ -150,12 +141,7 @@ export const useAuthStore = create(
             }
 
             localStorage.setItem('fieldflow-test-user', JSON.stringify(testUser))
-            
-            set({ 
-              user: testUser, 
-              isAuthenticated: true, 
-              loading: false 
-            })
+            set({ user: testUser, isAuthenticated: true, loading: false })
 
             useAppStore.getState().addNotification({
               type: 'success',
@@ -193,6 +179,7 @@ export const useAuthStore = create(
           }
 
           return { success: true, user: data.user }
+
         } catch (error) {
           console.error('Registration error:', error)
           set({ loading: false })
@@ -215,11 +202,11 @@ export const useAuthStore = create(
           }
 
           // Clear all app data
-          set({ 
-            user: null, 
-            isAuthenticated: false, 
-            session: null, 
-            loading: false 
+          set({
+            user: null,
+            isAuthenticated: false,
+            session: null,
+            loading: false
           })
 
           // Clear cache and offline data
@@ -228,10 +215,8 @@ export const useAuthStore = create(
             await Promise.all(cacheNames.map(name => caches.delete(name)))
           }
 
-          // Clear other stores
-          useAppStore.getState().removeNotification
-          
           return { success: true }
+
         } catch (error) {
           console.error('Logout error:', error)
           set({ loading: false })
@@ -258,7 +243,8 @@ export const useAuthStore = create(
             email: authUser.email,
             name: profile?.name || authUser.user_metadata?.name || authUser.email,
             company: profile?.company || '',
-            role: profile?.role || 'Owner',
+            company_id: profile?.company_id || null,
+            role: profile?.role || 'admin',
             avatar: profile?.avatar_url || null,
             subscription: {
               plan: profile?.subscription_plan || 'trial',
@@ -268,12 +254,9 @@ export const useAuthStore = create(
             }
           }
 
-          set({ 
-            user: userData, 
-            isAuthenticated: true 
-          })
-
+          set({ user: userData, isAuthenticated: true })
           return userData
+
         } catch (error) {
           console.error('Error setting user from session:', error)
           throw error
@@ -302,7 +285,6 @@ export const useAuthStore = create(
             
             localStorage.setItem('fieldflow-test-user', JSON.stringify(updatedUser))
             set({ user: updatedUser, loading: false })
-            
             return { success: true }
           }
 
@@ -329,9 +311,9 @@ export const useAuthStore = create(
             company: profileData.company,
             role: profileData.role
           }
-          
+
           set({ user: updatedUser, loading: false })
-          
+
           useAppStore.getState().addNotification({
             type: 'success',
             title: 'Profile Updated',
@@ -339,44 +321,9 @@ export const useAuthStore = create(
           })
 
           return { success: true }
+
         } catch (error) {
           console.error('Profile update error:', error)
-          set({ loading: false })
-          return { success: false, error: error.message }
-        }
-      },
-
-      // Forgot password
-      forgotPassword: async (email) => {
-        set({ loading: true })
-        
-        try {
-          const { testMode } = get()
-          
-          if (testMode) {
-            set({ loading: false })
-            return {
-              success: true,
-              message: 'Password reset email sent (test mode)'
-            }
-          }
-
-          const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/auth/reset-password`
-          })
-
-          set({ loading: false })
-
-          if (error) {
-            return { success: false, error: error.message }
-          }
-
-          return {
-            success: true,
-            message: 'Password reset email sent'
-          }
-        } catch (error) {
-          console.error('Forgot password error:', error)
           set({ loading: false })
           return { success: false, error: error.message }
         }
@@ -394,11 +341,7 @@ export const useAuthStore = create(
             const testUser = localStorage.getItem('fieldflow-test-user')
             if (testUser) {
               const userData = JSON.parse(testUser)
-              set({ 
-                user: userData, 
-                isAuthenticated: true, 
-                loading: false 
-              })
+              set({ user: userData, isAuthenticated: true, loading: false })
               return userData
             }
           } else {
@@ -413,9 +356,10 @@ export const useAuthStore = create(
               return session.user
             }
           }
-          
+
           set({ loading: false })
           return null
+
         } catch (error) {
           console.error('Error initializing auth:', error)
           set({ loading: false })

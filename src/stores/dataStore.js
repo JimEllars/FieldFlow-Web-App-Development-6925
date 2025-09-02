@@ -1,13 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// Sample data for testing
+// Enhanced sample data for better demo experience
 const sampleProjects = [
   {
     id: '1',
     name: 'Residential Deck Construction',
     description: 'Build a 20x16 composite deck with pergola and outdoor kitchen area',
     client: 'Johnson Family',
+    client_id: 'client-1',
     status: 'active',
     progress: 65,
     startDate: '2024-11-01',
@@ -24,6 +25,7 @@ const sampleProjects = [
     name: 'Commercial Landscaping Project',
     description: 'Complete landscape design and installation for new office complex',
     client: 'Springfield Business Park',
+    client_id: 'client-2',
     status: 'active',
     progress: 30,
     startDate: '2024-12-01',
@@ -32,6 +34,23 @@ const sampleProjects = [
     spent: 13500,
     address: '456 Business Drive, Springfield, IL 62702',
     team: ['Lisa Martinez', 'David Park'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: '3',
+    name: 'Kitchen Renovation',
+    description: 'Complete kitchen remodel with custom cabinets and granite countertops',
+    client: 'Smith Residence',
+    client_id: 'client-3',
+    status: 'planning',
+    progress: 10,
+    startDate: '2025-01-15',
+    endDate: '2025-03-30',
+    budget: 35000,
+    spent: 3500,
+    address: '789 Maple Ave, Springfield, IL 62703',
+    team: ['John Davis', 'Emma Wilson'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
@@ -63,6 +82,52 @@ const sampleTasks = [
     estimatedHours: 12,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
+  },
+  {
+    id: '3',
+    projectId: '2',
+    title: 'Site preparation',
+    description: 'Clear and level the construction site for landscaping',
+    status: 'pending',
+    priority: 'medium',
+    assignee: 'Lisa Martinez',
+    dueDate: '2024-12-10',
+    estimatedHours: 8,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+]
+
+const sampleClients = [
+  {
+    id: 'client-1',
+    name: 'Johnson Family',
+    email: 'sarah.johnson@email.com',
+    phone_number: '(555) 123-4567',
+    address: '123 Oak Street, Springfield, IL 62701',
+    notes: 'Preferred client - always pays on time. Interested in future landscaping projects.',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'client-2',
+    name: 'Springfield Business Park',
+    email: 'maintenance@springfieldpark.com',
+    phone_number: '(555) 987-6543',
+    address: '456 Business Drive, Springfield, IL 62702',
+    notes: 'Commercial client - requires all work to be completed after business hours.',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'client-3',
+    name: 'Smith Residence',
+    email: 'mike.smith@email.com',
+    phone_number: '(555) 555-0123',
+    address: '789 Maple Ave, Springfield, IL 62703',
+    notes: 'New client - referred by Johnson Family. Very detail-oriented.',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 ]
 
@@ -74,6 +139,7 @@ export const useDataStore = create(
       data: {
         projects: sampleProjects,
         tasks: sampleTasks,
+        clients: sampleClients,
         dailyLogs: [],
         timeEntries: [],
         documents: []
@@ -264,6 +330,87 @@ export const useDataStore = create(
         }
       },
 
+      // Client CRUD operations
+      createClient: async (clientData, options = {}) => {
+        const { onSuccess, onError } = options
+        try {
+          const newClient = {
+            id: `client-${Date.now()}`,
+            ...clientData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+
+          set(state => ({
+            data: {
+              ...state.data,
+              clients: [newClient, ...state.data.clients]
+            }
+          }))
+
+          if (onSuccess) onSuccess(newClient)
+          return { success: true, data: newClient }
+        } catch (error) {
+          if (onError) onError(error)
+          throw error
+        }
+      },
+
+      updateClient: async (clientId, updates, options = {}) => {
+        const { onSuccess, onError } = options
+        try {
+          const state = get()
+          const existingClient = state.data.clients.find(c => c.id === clientId)
+          
+          if (!existingClient) {
+            throw new Error('Client not found')
+          }
+
+          const updatedClient = {
+            ...existingClient,
+            ...updates,
+            updated_at: new Date().toISOString()
+          }
+
+          set(state => ({
+            data: {
+              ...state.data,
+              clients: state.data.clients.map(c => 
+                c.id === clientId ? updatedClient : c
+              )
+            }
+          }))
+
+          if (onSuccess) onSuccess(updatedClient)
+          return { success: true, data: updatedClient }
+        } catch (error) {
+          if (onError) onError(error)
+          throw error
+        }
+      },
+
+      deleteClient: async (clientId, options = {}) => {
+        const { onSuccess, onError } = options
+        try {
+          set(state => ({
+            data: {
+              ...state.data,
+              clients: state.data.clients.filter(c => c.id !== clientId),
+              // Also update projects to remove client reference
+              projects: state.data.projects.map(p => 
+                p.client_id === clientId ? { ...p, client_id: null } : p
+              )
+            }
+          }))
+
+          if (onSuccess) onSuccess()
+          return { success: true }
+        } catch (error) {
+          if (onError) onError(error)
+          throw error
+        }
+      },
+
       // Getter functions
       getProjectById: (id) => {
         const state = get()
@@ -275,9 +422,19 @@ export const useDataStore = create(
         return state.data.tasks.find(t => t.id === id)
       },
 
+      getClientById: (id) => {
+        const state = get()
+        return state.data.clients.find(c => c.id === id)
+      },
+
       getTasksByProject: (projectId) => {
         const state = get()
         return state.data.tasks.filter(t => t.projectId === projectId)
+      },
+
+      getProjectsByClient: (clientId) => {
+        const state = get()
+        return state.data.projects.filter(p => p.client_id === clientId)
       },
 
       getDailyLogsByProject: (projectId) => {

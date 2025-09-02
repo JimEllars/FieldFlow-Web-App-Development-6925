@@ -75,9 +75,7 @@ function App() {
             {/* Authentication Routes */}
             <Route 
               path="/auth/*" 
-              element={
-                isAuthenticated ? <Navigate to="/app" replace /> : <AuthLayout />
-              }
+              element={isAuthenticated ? <Navigate to="/app" replace /> : <AuthLayout />}
             >
               <Route path="login" element={<LoginScreen />} />
               <Route path="register" element={<RegisterScreen />} />
@@ -143,7 +141,9 @@ function App() {
             <Route 
               path="/" 
               element={
-                isAuthenticated ? <Navigate to="/app" replace /> : <Navigate to="/auth/login" replace />
+                isAuthenticated ? 
+                <Navigate to="/app" replace /> : 
+                <Navigate to="/auth/login" replace />
               } 
             />
             
@@ -151,7 +151,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-        
+
         {/* Global Components */}
         <NotificationSystem />
         <PerformanceMonitor />
