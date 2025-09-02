@@ -9,7 +9,7 @@ import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
-const { FiSearch, FiPlus, FiUsers, FiMail, FiUserCheck, FiUserX, FiEdit2, FiTrash2, FiShield } = FiIcons
+const { FiSearch, FiPlus, FiUsers, FiMail, FiUserCheck, FiUserX, FiEdit2, FiTrash2, FiShield, FiClock, FiCalendar } = FiIcons
 
 const TeamScreen = () => {
   const { user } = useAuthStore()
@@ -58,8 +58,55 @@ const TeamScreen = () => {
     try {
       if (!force) setLoading(true)
       
-      const members = await teamService.getTeamMembers(user.company_id)
-      setTeamMembers(members)
+      if (import.meta.env.VITE_TEST_MODE === 'true') {
+        // Mock team data for test mode
+        const mockTeamMembers = [
+          {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: 'admin',
+            is_active: true,
+            last_login_at: new Date().toISOString(),
+            created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 'user-2',
+            name: 'Sarah Chen',
+            email: 'sarah.chen@demo.com',
+            role: 'user',
+            is_active: true,
+            last_login_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 'user-3',
+            name: 'Mike Rodriguez',
+            email: 'mike.rodriguez@demo.com',
+            role: 'user',
+            is_active: true,
+            last_login_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 'user-4',
+            name: 'Lisa Martinez',
+            email: 'lisa.martinez@demo.com',
+            role: 'user',
+            is_active: false,
+            last_login_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ]
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500))
+        setTeamMembers(mockTeamMembers)
+      } else {
+        // Production mode
+        const members = await teamService.getTeamMembers(user.company_id)
+        setTeamMembers(members)
+      }
     } catch (error) {
       console.error('Error loading team members:', error)
       addNotification({
@@ -84,18 +131,30 @@ const TeamScreen = () => {
     setInviteLoading(true)
 
     try {
-      await teamService.inviteTeamMember({
-        ...inviteForm,
-        company_id: user.company_id,
-        invited_by: user.id
-      })
-
-      addNotification({
-        type: 'success',
-        title: 'Invitation Sent',
-        message: `Invitation sent to ${inviteForm.email}`
-      })
-
+      if (import.meta.env.VITE_TEST_MODE === 'true') {
+        // Simulate invitation in test mode
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        addNotification({
+          type: 'success',
+          title: 'Invitation Sent (Test Mode)',
+          message: `Invitation would be sent to ${inviteForm.email}`
+        })
+      } else {
+        // Production mode
+        await teamService.inviteTeamMember({
+          ...inviteForm,
+          company_id: user.company_id,
+          invited_by: user.id
+        })
+        
+        addNotification({
+          type: 'success',
+          title: 'Invitation Sent',
+          message: `Invitation sent to ${inviteForm.email}`
+        })
+      }
+      
       setInviteForm({ email: '', name: '', role: 'user' })
       setShowInviteModal(false)
       loadTeamMembers(true)
@@ -112,15 +171,26 @@ const TeamScreen = () => {
 
   const handleUpdateRole = async (memberId, newRole) => {
     try {
-      await teamService.updateMemberRole(memberId, newRole)
-      
-      addNotification({
-        type: 'success',
-        title: 'Role Updated',
-        message: `Member role updated to ${newRole}`
-      })
-
-      loadTeamMembers(true)
+      if (import.meta.env.VITE_TEST_MODE === 'true') {
+        // Update local state in test mode
+        setTeamMembers(prev => prev.map(member => 
+          member.id === memberId ? { ...member, role: newRole } : member
+        ))
+        
+        addNotification({
+          type: 'success',
+          title: 'Role Updated (Test Mode)',
+          message: `Member role updated to ${newRole}`
+        })
+      } else {
+        await teamService.updateMemberRole(memberId, newRole)
+        addNotification({
+          type: 'success',
+          title: 'Role Updated',
+          message: `Member role updated to ${newRole}`
+        })
+        loadTeamMembers(true)
+      }
     } catch (error) {
       addNotification({
         type: 'error',
@@ -134,17 +204,29 @@ const TeamScreen = () => {
     if (!selectedMember) return
 
     try {
-      await teamService.deactivateMember(selectedMember.id)
+      if (import.meta.env.VITE_TEST_MODE === 'true') {
+        // Update local state in test mode
+        setTeamMembers(prev => prev.map(member => 
+          member.id === selectedMember.id ? { ...member, is_active: false } : member
+        ))
+        
+        addNotification({
+          type: 'success',
+          title: 'Member Deactivated (Test Mode)',
+          message: `${selectedMember.name} has been deactivated`
+        })
+      } else {
+        await teamService.deactivateMember(selectedMember.id)
+        addNotification({
+          type: 'success',
+          title: 'Member Deactivated',
+          message: `${selectedMember.name} has been deactivated`
+        })
+        loadTeamMembers(true)
+      }
       
-      addNotification({
-        type: 'success',
-        title: 'Member Deactivated',
-        message: `${selectedMember.name} has been deactivated`
-      })
-
       setShowDeactivateModal(false)
       setSelectedMember(null)
-      loadTeamMembers(true)
     } catch (error) {
       addNotification({
         type: 'error',
@@ -249,7 +331,7 @@ const TeamScreen = () => {
                             {member.name.charAt(0)}
                           </span>
                         </div>
-
+                        
                         {/* Member Info */}
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
@@ -262,16 +344,17 @@ const TeamScreen = () => {
                               </span>
                             )}
                           </div>
-                          
                           <div className="flex items-center space-x-4 mt-1">
                             <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                               <SafeIcon icon={FiMail} className="w-4 h-4 mr-1" />
-                              <a href={`mailto:${member.email}`} className="hover:text-primary-600">
+                              <a
+                                href={`mailto:${member.email}`}
+                                className="hover:text-primary-600"
+                              >
                                 {member.email}
                               </a>
                             </div>
                           </div>
-                          
                           {member.last_login_at && (
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               Last active: {new Date(member.last_login_at).toLocaleDateString()}
@@ -305,7 +388,7 @@ const TeamScreen = () => {
                             >
                               <SafeIcon icon={member.role === 'admin' ? FiUserX : FiUserCheck} className="w-4 h-4" />
                             </button>
-
+                            
                             {/* Deactivate */}
                             <button
                               onClick={() => {
@@ -333,7 +416,6 @@ const TeamScreen = () => {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Inactive Members ({inactiveMembers.length})
               </h2>
-              
               <div className="space-y-3">
                 {inactiveMembers.map((member) => (
                   <div key={member.id} className="card opacity-60">
@@ -344,7 +426,6 @@ const TeamScreen = () => {
                             {member.name.charAt(0)}
                           </span>
                         </div>
-
                         <div>
                           <h3 className="text-lg font-medium text-gray-600 dark:text-gray-400">
                             {member.name}
@@ -354,14 +435,20 @@ const TeamScreen = () => {
                           </p>
                         </div>
                       </div>
-
                       <div className="flex items-center space-x-3">
                         <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
                           Inactive
                         </span>
-                        
                         <button
-                          onClick={() => teamService.reactivateMember(member.id).then(() => loadTeamMembers(true))}
+                          onClick={() => {
+                            if (import.meta.env.VITE_TEST_MODE === 'true') {
+                              setTeamMembers(prev => prev.map(m => 
+                                m.id === member.id ? { ...m, is_active: true } : m
+                              ))
+                            } else {
+                              teamService.reactivateMember(member.id).then(() => loadTeamMembers(true))
+                            }
+                          }}
                           className="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400"
                         >
                           Reactivate
@@ -411,7 +498,6 @@ const TeamScreen = () => {
                             placeholder="colleague@company.com"
                           />
                         </div>
-                        
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Full Name *
@@ -425,7 +511,6 @@ const TeamScreen = () => {
                             placeholder="John Smith"
                           />
                         </div>
-                        
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Role
@@ -443,7 +528,6 @@ const TeamScreen = () => {
                     </div>
                   </div>
                 </div>
-                
                 <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                   <button
                     type="submit"

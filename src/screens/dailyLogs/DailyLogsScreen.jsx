@@ -13,6 +13,7 @@ const { FiSearch, FiPlus, FiFilter, FiFileText, FiCalendar, FiUser } = FiIcons
 const DailyLogsScreen = () => {
   const { user } = useAuthStore()
   const { data, loading, loadAllData, pullToRefresh } = useDataStore()
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all') // all, project-1, project-2, etc.
   const [refreshing, setRefreshing] = useState(false)
@@ -27,7 +28,6 @@ const DailyLogsScreen = () => {
   // Handle pull to refresh
   const handleRefresh = async () => {
     if (!user?.id || refreshing) return
-    
     setRefreshing(true)
     try {
       await pullToRefresh(user.id)
@@ -41,17 +41,16 @@ const DailyLogsScreen = () => {
   const filteredLogs = data.dailyLogs
     .filter(log => {
       // Apply search filter
-      if (searchTerm && 
-          !log.workCompleted.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      if (searchTerm && !log.workCompleted.toLowerCase().includes(searchTerm.toLowerCase()) && 
           !log.submittedBy.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false
       }
-      
+
       // Apply project filter
       if (filter !== 'all' && log.projectId !== filter.replace('project-', '')) {
         return false
       }
-      
+
       return true
     })
     .sort((a, b) => {
@@ -108,8 +107,8 @@ const DailyLogsScreen = () => {
       </div>
 
       {/* Daily Logs List with Pull to Refresh */}
-      <PullToRefresh 
-        onRefresh={handleRefresh} 
+      <PullToRefresh
+        onRefresh={handleRefresh}
         disabled={loading || refreshing}
         className="min-h-screen"
       >
@@ -121,8 +120,8 @@ const DailyLogsScreen = () => {
                 No daily logs found
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                {searchTerm || filter !== 'all'
-                  ? 'Try changing your search or filter'
+                {searchTerm || filter !== 'all' 
+                  ? 'Try changing your search or filter' 
                   : 'Start by creating your first daily log'
                 }
               </p>

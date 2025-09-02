@@ -13,6 +13,7 @@ const { FiSearch, FiPlus, FiFilter, FiCalendar, FiCheckSquare } = FiIcons
 const TasksScreen = () => {
   const { user } = useAuthStore()
   const { data, loading, loadAllData, pullToRefresh } = useDataStore()
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all') // all, pending, in-progress, completed
   const [refreshing, setRefreshing] = useState(false)
@@ -27,7 +28,6 @@ const TasksScreen = () => {
   // Handle pull to refresh
   const handleRefresh = async () => {
     if (!user?.id || refreshing) return
-    
     setRefreshing(true)
     try {
       await pullToRefresh(user.id)
@@ -44,12 +44,12 @@ const TasksScreen = () => {
       if (searchTerm && !task.title.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false
       }
-      
+
       // Apply status filter
       if (filter !== 'all' && task.status !== filter) {
         return false
       }
-      
+
       return true
     })
     .sort((a, b) => {
@@ -108,8 +108,8 @@ const TasksScreen = () => {
       </div>
 
       {/* Tasks List with Pull to Refresh */}
-      <PullToRefresh 
-        onRefresh={handleRefresh} 
+      <PullToRefresh
+        onRefresh={handleRefresh}
         disabled={loading || refreshing}
         className="min-h-screen"
       >
@@ -121,8 +121,8 @@ const TasksScreen = () => {
                 No tasks found
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                {searchTerm || filter !== 'all'
-                  ? 'Try changing your search or filter'
+                {searchTerm || filter !== 'all' 
+                  ? 'Try changing your search or filter' 
                   : 'Start by creating your first task'
                 }
               </p>
@@ -148,39 +148,40 @@ const TasksScreen = () => {
                         {task.description}
                       </p>
                     )}
+                    
                     <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mt-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          task.status === 'completed'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                            : task.status === 'in-progress'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
-                        }`}
-                      >
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        task.status === 'completed' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          : task.status === 'in-progress'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                      }`}>
                         {task.status === 'in-progress' ? 'In Progress' : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
                       </span>
+                      
                       <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                         <SafeIcon icon={FiCalendar} className="w-3 h-3 mr-1" />
                         Due: {format(new Date(task.dueDate), 'MMM d, yyyy')}
                       </div>
+                      
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         Assigned to: {task.assignee}
                       </div>
+                      
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {task.estimatedHours} hours estimated
                       </div>
                     </div>
                   </div>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      task.priority === 'high'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                        : task.priority === 'medium'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                    }`}
-                  >
+                  
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    task.priority === 'high' 
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                      : task.priority === 'medium'
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                      : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                  }`}>
                     {task.priority}
                   </span>
                 </div>

@@ -1,25 +1,22 @@
 import React, { useState, useEffect } from 'react'
-import { useData } from '../../contexts/DataContext'
+import { useDataStore } from '../../stores/dataStore'
 import { format } from 'date-fns'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
-const { 
-  FiPlay, FiPause, FiClock, FiCheckCircle,
-  FiCalendar, FiList, FiMapPin, FiPlus
-} = FiIcons
+const { FiPlay, FiPause, FiClock, FiCheckCircle, FiCalendar, FiList, FiMapPin, FiPlus } = FiIcons
 
 const TimeTrackingScreen = () => {
-  const { data, createTimeEntry, loading: dataLoading } = useData()
-  
+  const { data, createTimeEntry, loading: dataLoading } = useDataStore()
+
   // Time tracking state
   const [isTracking, setIsTracking] = useState(false)
   const [activeProject, setActiveProject] = useState('')
   const [trackingStartTime, setTrackingStartTime] = useState(null)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [description, setDescription] = useState('')
-  
+
   // Time entry form state
   const [showManualEntryForm, setShowManualEntryForm] = useState(false)
   const [manualEntry, setManualEntry] = useState({
@@ -30,11 +27,10 @@ const TimeTrackingScreen = () => {
     breakTime: 0,
     description: ''
   })
-  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  
+
   // Format time as HH:MM:SS
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600)
@@ -42,7 +38,7 @@ const TimeTrackingScreen = () => {
     const secs = seconds % 60
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
-  
+
   // Update elapsed time every second when tracking
   useEffect(() => {
     let interval
@@ -55,7 +51,7 @@ const TimeTrackingScreen = () => {
     }
     return () => clearInterval(interval)
   }, [isTracking, trackingStartTime])
-  
+
   // Get current geolocation
   const getCurrentPosition = () => {
     return new Promise((resolve, reject) => {
@@ -63,7 +59,7 @@ const TimeTrackingScreen = () => {
         reject(new Error('Geolocation is not supported by your browser'))
         return
       }
-      
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           resolve({
@@ -78,29 +74,33 @@ const TimeTrackingScreen = () => {
             lng: -74.0060
           })
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
       )
     })
   }
-  
+
   const startTracking = async () => {
     if (!activeProject) {
       setError('Please select a project before starting time tracking')
       return
     }
-    
+
     setError('')
-    
+
     try {
       // Get current position for geofencing
       const position = await getCurrentPosition()
       console.log('Starting tracking at position:', position)
-      
+
       // Start tracking
       setTrackingStartTime(new Date())
       setIsTracking(true)
       setElapsedTime(0)
-      
+
       // Show success message
       setSuccess('Time tracking started')
       setTimeout(() => setSuccess(''), 3000)
@@ -109,19 +109,19 @@ const TimeTrackingScreen = () => {
       setError('Failed to start time tracking')
     }
   }
-  
+
   const stopTracking = async () => {
     setLoading(true)
-    
+
     try {
       // Get current position for geofencing
       const position = await getCurrentPosition()
-      
+
       const startTime = trackingStartTime
       const endTime = new Date()
       const totalSeconds = Math.floor((endTime - startTime) / 1000)
       const totalHours = parseFloat((totalSeconds / 3600).toFixed(2))
-      
+
       // Create time entry
       const timeEntry = {
         projectId: activeProject,
@@ -134,15 +134,15 @@ const TimeTrackingScreen = () => {
         description,
         location: position
       }
-      
+
       await createTimeEntry(timeEntry)
-      
+
       // Reset tracking state
       setIsTracking(false)
       setTrackingStartTime(null)
       setElapsedTime(0)
       setDescription('')
-      
+
       // Show success message
       setSuccess('Time entry saved successfully')
       setTimeout(() => setSuccess(''), 3000)
@@ -153,51 +153,47 @@ const TimeTrackingScreen = () => {
       setLoading(false)
     }
   }
-  
+
   const handleManualEntryChange = (e) => {
     const { name, value } = e.target
-    setManualEntry(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setManualEntry(prev => ({ ...prev, [name]: value }))
   }
-  
+
   const calculateTotalHours = () => {
     if (!manualEntry.clockIn || !manualEntry.clockOut) return 0
-    
+
     const [inHours, inMinutes] = manualEntry.clockIn.split(':').map(Number)
     const [outHours, outMinutes] = manualEntry.clockOut.split(':').map(Number)
-    
+
     const totalMinutes = (outHours * 60 + outMinutes) - (inHours * 60 + inMinutes) - manualEntry.breakTime
     return parseFloat((totalMinutes / 60).toFixed(2))
   }
-  
+
   const submitManualEntry = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    
+
     try {
       if (!manualEntry.projectId) {
         setError('Please select a project')
         return
       }
-      
+
       if (!manualEntry.clockIn || !manualEntry.clockOut) {
         setError('Please enter clock in and clock out times')
         return
       }
-      
+
       const totalHours = calculateTotalHours()
-      
       if (totalHours <= 0) {
         setError('Clock out time must be after clock in time')
         return
       }
-      
+
       // Get current position for geofencing
       const position = await getCurrentPosition()
-      
+
       // Create time entry
       const timeEntry = {
         ...manualEntry,
@@ -205,9 +201,9 @@ const TimeTrackingScreen = () => {
         location: position,
         userId: 'john-smith' // Would come from auth context
       }
-      
+
       await createTimeEntry(timeEntry)
-      
+
       // Reset form
       setManualEntry({
         projectId: '',
@@ -217,9 +213,8 @@ const TimeTrackingScreen = () => {
         breakTime: 0,
         description: ''
       })
-      
       setShowManualEntryForm(false)
-      
+
       // Show success message
       setSuccess('Time entry saved successfully')
       setTimeout(() => setSuccess(''), 3000)
@@ -230,14 +225,14 @@ const TimeTrackingScreen = () => {
       setLoading(false)
     }
   }
-  
+
   // Get recent time entries
   const recentTimeEntries = [...data.timeEntries]
     .sort((a, b) => new Date(b.date + 'T' + b.clockIn) - new Date(a.date + 'T' + a.clockIn))
     .slice(0, 5)
-  
+
   if (dataLoading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner text="Loading time tracking..." />
   }
 
   return (
@@ -247,7 +242,6 @@ const TimeTrackingScreen = () => {
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Time Tracking
         </h1>
-        
         <button
           onClick={() => setShowManualEntryForm(!showManualEntryForm)}
           className="btn-secondary py-2 px-3 text-sm flex items-center"
@@ -256,27 +250,26 @@ const TimeTrackingScreen = () => {
           {showManualEntryForm ? 'Live Tracking' : 'Manual Entry'}
         </button>
       </div>
-      
+
       {/* Success/Error Messages */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
           <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
         </div>
       )}
-      
+
       {success && (
         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
           <p className="text-sm text-green-700 dark:text-green-400">{success}</p>
         </div>
       )}
-      
+
       {showManualEntryForm ? (
         /* Manual Time Entry Form */
         <div className="card">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Add Manual Time Entry
           </h2>
-          
           <form onSubmit={submitManualEntry} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Project Selection */}
@@ -300,7 +293,7 @@ const TimeTrackingScreen = () => {
                   ))}
                 </select>
               </div>
-              
+
               {/* Date */}
               <div>
                 <label htmlFor="manual-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -316,7 +309,7 @@ const TimeTrackingScreen = () => {
                   required
                 />
               </div>
-              
+
               {/* Clock In */}
               <div>
                 <label htmlFor="manual-clockIn" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -332,7 +325,7 @@ const TimeTrackingScreen = () => {
                   required
                 />
               </div>
-              
+
               {/* Clock Out */}
               <div>
                 <label htmlFor="manual-clockOut" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -348,7 +341,7 @@ const TimeTrackingScreen = () => {
                   required
                 />
               </div>
-              
+
               {/* Break Time */}
               <div>
                 <label htmlFor="manual-breakTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -365,7 +358,7 @@ const TimeTrackingScreen = () => {
                   step="1"
                 />
               </div>
-              
+
               {/* Total Hours (calculated) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -376,7 +369,7 @@ const TimeTrackingScreen = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Description */}
             <div>
               <label htmlFor="manual-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -391,7 +384,7 @@ const TimeTrackingScreen = () => {
                 placeholder="Describe the work performed"
               />
             </div>
-            
+
             {/* Submit Button */}
             <div className="flex justify-end">
               <button
@@ -420,7 +413,6 @@ const TimeTrackingScreen = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
             Live Time Tracking
           </h2>
-          
           <div className="space-y-6">
             {/* Timer Display */}
             <div className="flex flex-col items-center justify-center">
@@ -431,7 +423,7 @@ const TimeTrackingScreen = () => {
                 {isTracking ? 'Time tracking in progress' : 'Ready to start tracking'}
               </p>
             </div>
-            
+
             {/* Project Selection */}
             <div>
               <label htmlFor="project" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -453,7 +445,7 @@ const TimeTrackingScreen = () => {
                 ))}
               </select>
             </div>
-            
+
             {/* Description */}
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -468,7 +460,7 @@ const TimeTrackingScreen = () => {
                 disabled={isTracking && loading}
               />
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex justify-center">
               {isTracking ? (
@@ -503,19 +495,18 @@ const TimeTrackingScreen = () => {
           </div>
         </div>
       )}
-      
+
       {/* Recent Time Entries */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
             Recent Time Entries
           </h2>
-          
           <a href="#" className="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400">
             View All
           </a>
         </div>
-        
+
         {recentTimeEntries.length === 0 ? (
           <p className="text-sm text-gray-600 dark:text-gray-400">
             No time entries recorded yet
@@ -524,7 +515,6 @@ const TimeTrackingScreen = () => {
           <div className="space-y-3">
             {recentTimeEntries.map((entry) => {
               const project = data.projects.find(p => p.id === entry.projectId)
-              
               return (
                 <div key={entry.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                   <div className="flex flex-wrap justify-between items-start gap-2">
@@ -542,7 +532,6 @@ const TimeTrackingScreen = () => {
                         </div>
                       </div>
                     </div>
-                    
                     <div className="flex flex-col items-end">
                       <div className="flex items-center">
                         <SafeIcon icon={FiList} className="w-3 h-3 mr-1 text-gray-500" />
@@ -550,7 +539,6 @@ const TimeTrackingScreen = () => {
                           {project ? project.name : 'Unknown Project'}
                         </span>
                       </div>
-                      
                       {entry.location && (
                         <div className="flex items-center text-xs text-gray-500 mt-1">
                           <SafeIcon icon={FiMapPin} className="w-3 h-3 mr-1" />
@@ -559,7 +547,6 @@ const TimeTrackingScreen = () => {
                       )}
                     </div>
                   </div>
-                  
                   {entry.description && (
                     <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                       {entry.description}
