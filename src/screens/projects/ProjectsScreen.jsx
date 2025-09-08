@@ -13,7 +13,6 @@ const { FiSearch, FiFilter, FiPlus, FiChevronRight, FiCalendar, FiDollarSign } =
 const ProjectsScreen = () => {
   const { user } = useAuthStore()
   const { data, loading, loadAllData, pullToRefresh } = useDataStore()
-  
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all')
   const [refreshing, setRefreshing] = useState(false)
@@ -41,7 +40,8 @@ const ProjectsScreen = () => {
   const filteredProjects = data.projects
     .filter(project => {
       // Apply search filter
-      if (searchTerm && !project.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+      if (searchTerm && 
+          !project.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
           !project.client.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false
       }
@@ -124,7 +124,10 @@ const ProjectsScreen = () => {
                   : 'Start by creating your first project'
                 }
               </p>
-              <Link to="/app/projects/new" className="btn-primary inline-flex items-center">
+              <Link
+                to="/app/projects/new"
+                className="btn-primary inline-flex items-center"
+              >
                 <SafeIcon icon={FiPlus} className="w-5 h-5 mr-2" />
                 Add Project
               </Link>
@@ -143,7 +146,7 @@ const ProjectsScreen = () => {
                         {project.name}
                       </h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        project.status === 'active' 
+                        project.status === 'active'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                           : project.status === 'planning'
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
@@ -152,11 +155,10 @@ const ProjectsScreen = () => {
                         {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
                       </span>
                     </div>
-                    
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       {project.client}
                     </p>
-                    
+
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                         <SafeIcon icon={FiCalendar} className="w-4 h-4 mr-1" />
@@ -171,11 +173,11 @@ const ProjectsScreen = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="mt-3">
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
-                          className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
+                          className="bg-primary-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${project.progress}%` }}
                         />
                       </div>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useData } from '../../contexts/DataContext'
+import { useDataStore } from '../../stores/dataStore'
+import { useAuthStore } from '../../stores/authStore'
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
@@ -9,37 +10,46 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 const { FiChevronLeft, FiChevronRight, FiCalendar, FiClock, FiMapPin } = FiIcons
 
 const ScheduleScreen = () => {
-  const { data, loading } = useData()
+  const { user } = useAuthStore()
+  const { data, loading, loadAllData } = useDataStore()
   const [currentDate, setCurrentDate] = useState(new Date())
+
+  // Load data on component mount
+  useEffect(() => {
+    if (user?.id && data.tasks.length === 0) {
+      loadAllData(user.id)
+    }
+  }, [user?.id, data.tasks.length, loadAllData])
+
   const startDate = startOfWeek(currentDate, { weekStartsOn: 1 }) // Week starts on Monday
-  
+
   // Create array of dates for the week
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(startDate, i))
-  
+
   // Get tasks scheduled for this week
   const tasksThisWeek = data.tasks.filter(task => {
     const taskDate = new Date(task.dueDate)
     return weekDates.some(date => isSameDay(date, taskDate))
   })
-  
+
   const getTasksForDate = (date) => {
     return tasksThisWeek.filter(task => isSameDay(new Date(task.dueDate), date))
   }
-  
+
   const previousWeek = () => {
     setCurrentDate(addDays(startDate, -7))
   }
-  
+
   const nextWeek = () => {
     setCurrentDate(addDays(startDate, 7))
   }
-  
+
   const goToToday = () => {
     setCurrentDate(new Date())
   }
-  
-  if (loading) {
-    return <LoadingSpinner />
+
+  if (loading && data.tasks.length === 0) {
+    return <LoadingSpinner text="Loading schedule..." />
   }
 
   return (
@@ -54,7 +64,6 @@ const ScheduleScreen = () => {
             {format(startDate, 'MMMM d')} - {format(addDays(startDate, 6), 'MMMM d, yyyy')}
           </p>
         </div>
-        
         <div className="flex items-center space-x-2">
           <button
             onClick={previousWeek}
@@ -62,14 +71,12 @@ const ScheduleScreen = () => {
           >
             <SafeIcon icon={FiChevronLeft} className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
-          
           <button
             onClick={goToToday}
             className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             Today
           </button>
-          
           <button
             onClick={nextWeek}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -78,7 +85,7 @@ const ScheduleScreen = () => {
           </button>
         </div>
       </div>
-      
+
       {/* Weekly Calendar */}
       <div className="grid grid-cols-7 gap-2">
         {/* Day Headers */}
@@ -96,11 +103,11 @@ const ScheduleScreen = () => {
             </p>
           </div>
         ))}
-        
+
         {/* Calendar Grid */}
         {weekDates.map((date, dateIndex) => (
-          <div 
-            key={`grid-${dateIndex}`} 
+          <div
+            key={`grid-${dateIndex}`}
             className={`min-h-[200px] border border-gray-200 dark:border-gray-700 rounded-lg p-2 ${
               isSameDay(date, new Date())
                 ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800'
@@ -111,7 +118,6 @@ const ScheduleScreen = () => {
               <div className="space-y-2">
                 {getTasksForDate(date).map(task => {
                   const project = data.projects.find(p => p.id === task.projectId)
-                  
                   return (
                     <Link
                       key={task.id}
@@ -127,13 +133,11 @@ const ScheduleScreen = () => {
                       <div className="font-medium text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
                         {task.title}
                       </div>
-                      
                       <div className="flex items-center text-gray-600 dark:text-gray-400 space-x-2">
                         <div className="flex items-center">
                           <SafeIcon icon={FiClock} className="w-3 h-3 mr-1" />
                           {task.estimatedHours}h
                         </div>
-                        
                         {project && (
                           <div className="truncate flex-1">
                             <SafeIcon icon={FiMapPin} className="w-3 h-3 mr-1 inline" />
@@ -153,14 +157,13 @@ const ScheduleScreen = () => {
           </div>
         ))}
       </div>
-      
+
       {/* Upcoming Tasks */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Upcoming Tasks
           </h2>
-          
           <Link
             to="/app/tasks"
             className="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400"
@@ -175,7 +178,6 @@ const ScheduleScreen = () => {
           .slice(0, 5)
           .map(task => {
             const project = data.projects.find(p => p.id === task.projectId)
-            
             return (
               <Link
                 key={task.id}
@@ -184,13 +186,9 @@ const ScheduleScreen = () => {
               >
                 <div className="flex items-center space-x-3">
                   <div className={`w-3 h-3 rounded-full ${
-                    task.priority === 'high'
-                      ? 'bg-red-500'
-                      : task.priority === 'medium'
-                      ? 'bg-yellow-500'
-                      : 'bg-green-500'
+                    task.priority === 'high' ? 'bg-red-500' : 
+                    task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
                   }`}></div>
-                  
                   <div>
                     <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {task.title}
@@ -200,7 +198,6 @@ const ScheduleScreen = () => {
                     </p>
                   </div>
                 </div>
-                
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                   <SafeIcon icon={FiCalendar} className="w-4 h-4 mr-1" />
                   {format(new Date(task.dueDate), 'MMM d')}

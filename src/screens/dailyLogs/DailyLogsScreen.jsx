@@ -13,7 +13,6 @@ const { FiSearch, FiPlus, FiFilter, FiFileText, FiCalendar, FiUser } = FiIcons
 const DailyLogsScreen = () => {
   const { user } = useAuthStore()
   const { data, loading, loadAllData, pullToRefresh } = useDataStore()
-  
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all') // all, project-1, project-2, etc.
   const [refreshing, setRefreshing] = useState(false)
@@ -41,7 +40,8 @@ const DailyLogsScreen = () => {
   const filteredLogs = data.dailyLogs
     .filter(log => {
       // Apply search filter
-      if (searchTerm && !log.workCompleted.toLowerCase().includes(searchTerm.toLowerCase()) && 
+      if (searchTerm && 
+          !log.workCompleted.toLowerCase().includes(searchTerm.toLowerCase()) &&
           !log.submittedBy.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false
       }
@@ -125,7 +125,10 @@ const DailyLogsScreen = () => {
                   : 'Start by creating your first daily log'
                 }
               </p>
-              <Link to="/app/daily-logs/new" className="btn-primary inline-flex items-center">
+              <Link
+                to="/app/daily-logs/new"
+                className="btn-primary inline-flex items-center"
+              >
                 <SafeIcon icon={FiPlus} className="w-5 h-5 mr-2" />
                 Add Daily Log
               </Link>

@@ -13,7 +13,6 @@ const { FiSearch, FiPlus, FiFilter, FiCalendar, FiCheckSquare } = FiIcons
 const TasksScreen = () => {
   const { user } = useAuthStore()
   const { data, loading, loadAllData, pullToRefresh } = useDataStore()
-  
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all') // all, pending, in-progress, completed
   const [refreshing, setRefreshing] = useState(false)
@@ -126,7 +125,10 @@ const TasksScreen = () => {
                   : 'Start by creating your first task'
                 }
               </p>
-              <Link to="/app/tasks/new" className="btn-primary inline-flex items-center">
+              <Link
+                to="/app/tasks/new"
+                className="btn-primary inline-flex items-center"
+              >
                 <SafeIcon icon={FiPlus} className="w-5 h-5 mr-2" />
                 Add Task
               </Link>
@@ -148,10 +150,10 @@ const TasksScreen = () => {
                         {task.description}
                       </p>
                     )}
-                    
+
                     <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mt-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        task.status === 'completed' 
+                        task.status === 'completed'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                           : task.status === 'in-progress'
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
@@ -176,7 +178,7 @@ const TasksScreen = () => {
                   </div>
                   
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    task.priority === 'high' 
+                    task.priority === 'high'
                       ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                       : task.priority === 'medium'
                       ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'

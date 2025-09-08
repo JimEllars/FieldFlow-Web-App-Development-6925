@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useDataStore } from '../../stores/dataStore'
+import { useAuthStore } from '../../stores/authStore'
+import { useAppStore } from '../../stores/appStore'
 import { format } from 'date-fns'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
@@ -8,7 +10,9 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 const { FiPlay, FiPause, FiClock, FiCheckCircle, FiCalendar, FiList, FiMapPin, FiPlus } = FiIcons
 
 const TimeTrackingScreen = () => {
-  const { data, createTimeEntry, loading: dataLoading } = useDataStore()
+  const { user } = useAuthStore()
+  const { data, createTimeEntry, loading: dataLoading, loadAllData } = useDataStore()
+  const addNotification = useAppStore(state => state.addNotification)
 
   // Time tracking state
   const [isTracking, setIsTracking] = useState(false)
@@ -30,6 +34,13 @@ const TimeTrackingScreen = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // Load data on component mount
+  useEffect(() => {
+    if (user?.id && data.timeEntries.length === 0) {
+      loadAllData(user.id)
+    }
+  }, [user?.id, data.timeEntries.length, loadAllData])
 
   // Format time as HH:MM:SS
   const formatTime = (seconds) => {
@@ -90,7 +101,6 @@ const TimeTrackingScreen = () => {
     }
 
     setError('')
-
     try {
       // Get current position for geofencing
       const position = await getCurrentPosition()
@@ -112,7 +122,6 @@ const TimeTrackingScreen = () => {
 
   const stopTracking = async () => {
     setLoading(true)
-
     try {
       // Get current position for geofencing
       const position = await getCurrentPosition()
@@ -125,7 +134,7 @@ const TimeTrackingScreen = () => {
       // Create time entry
       const timeEntry = {
         projectId: activeProject,
-        userId: 'john-smith', // Would come from auth context
+        userId: user?.id || 'john-smith',
         date: startTime.toISOString().split('T')[0],
         clockIn: startTime.toTimeString().split(' ')[0],
         clockOut: endTime.toTimeString().split(' ')[0],
@@ -135,7 +144,22 @@ const TimeTrackingScreen = () => {
         location: position
       }
 
-      await createTimeEntry(timeEntry)
+      await createTimeEntry(timeEntry, {
+        onSuccess: () => {
+          addNotification({
+            type: 'success',
+            title: 'Time Entry Saved',
+            message: `${totalHours} hours tracked for ${data.projects.find(p => p.id === activeProject)?.name}`
+          })
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Failed to Save',
+            message: error.message
+          })
+        }
+      })
 
       // Reset tracking state
       setIsTracking(false)
@@ -149,6 +173,11 @@ const TimeTrackingScreen = () => {
     } catch (error) {
       console.error('Error stopping tracking:', error)
       setError('Failed to save time entry')
+      addNotification({
+        type: 'error',
+        title: 'Time Tracking Error',
+        message: 'Failed to save time entry'
+      })
     } finally {
       setLoading(false)
     }
@@ -199,10 +228,25 @@ const TimeTrackingScreen = () => {
         ...manualEntry,
         totalHours,
         location: position,
-        userId: 'john-smith' // Would come from auth context
+        userId: user?.id || 'john-smith'
       }
 
-      await createTimeEntry(timeEntry)
+      await createTimeEntry(timeEntry, {
+        onSuccess: () => {
+          addNotification({
+            type: 'success',
+            title: 'Time Entry Saved',
+            message: `${totalHours} hours logged for ${data.projects.find(p => p.id === manualEntry.projectId)?.name}`
+          })
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Failed to Save',
+            message: error.message
+          })
+        }
+      })
 
       // Reset form
       setManualEntry({
@@ -231,7 +275,7 @@ const TimeTrackingScreen = () => {
     .sort((a, b) => new Date(b.date + 'T' + b.clockIn) - new Date(a.date + 'T' + a.clockIn))
     .slice(0, 5)
 
-  if (dataLoading) {
+  if (dataLoading && data.timeEntries.length === 0) {
     return <LoadingSpinner text="Loading time tracking..." />
   }
 

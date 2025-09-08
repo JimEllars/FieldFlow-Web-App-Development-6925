@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useDataStore } from '../../stores/dataStore'
 import { format } from 'date-fns'
+import { useDataStore } from '../../stores/dataStore'
+import { useAuthStore } from '../../stores/authStore'
 import * as FiIcons from 'react-icons/fi'
 import SafeIcon from '../../components/common/SafeIcon'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
@@ -9,13 +10,20 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 const { FiSearch, FiPlus, FiFilter, FiFile, FiFileText, FiImage, FiClipboard } = FiIcons
 
 const DocumentsScreen = () => {
-  const { data, loading } = useDataStore()
-  
+  const { user } = useAuthStore()
+  const { data, loading, loadAllData } = useDataStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState({
     project: 'all', // all, project-1, project-2, etc.
     category: 'all' // all, drawings, permits, photos, etc.
   })
+
+  // Load data on component mount
+  useEffect(() => {
+    if (user?.id && data.documents.length === 0) {
+      loadAllData(user.id)
+    }
+  }, [user?.id, data.documents.length, loadAllData])
 
   const getDocumentIcon = (type) => {
     if (type === 'pdf') return FiFileText
@@ -47,7 +55,7 @@ const DocumentsScreen = () => {
       return new Date(b.uploadedAt) - new Date(a.uploadedAt)
     })
 
-  if (loading) {
+  if (loading && data.documents.length === 0) {
     return <LoadingSpinner text="Loading documents..." />
   }
 
@@ -139,7 +147,10 @@ const DocumentsScreen = () => {
               : 'Upload your first document to get started'
             }
           </p>
-          <Link to="/app/documents/upload" className="btn-primary inline-flex items-center">
+          <Link
+            to="/app/documents/upload"
+            className="btn-primary inline-flex items-center"
+          >
             <SafeIcon icon={FiPlus} className="w-5 h-5 mr-2" />
             Upload Document
           </Link>

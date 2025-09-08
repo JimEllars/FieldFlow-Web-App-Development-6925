@@ -131,6 +131,70 @@ const sampleClients = [
   }
 ]
 
+const sampleDailyLogs = [
+  {
+    id: '1',
+    projectId: '1',
+    date: '2024-11-20',
+    weather: 'Sunny, 68°F',
+    workCompleted: 'Completed installation of deck joists and began laying composite boards. Made excellent progress on the main deck area.',
+    notes: 'Client was very pleased with progress. Need to order additional screws for tomorrow.',
+    crew: ['Mike Rodriguez', 'Sarah Chen'],
+    materials: [
+      { item: 'Composite Decking Boards', quantity: '24', unit: 'pieces' },
+      { item: 'Deck Screws', quantity: '2', unit: 'lbs' }
+    ],
+    equipment: ['Circular Saw', 'Drill', 'Level'],
+    submittedBy: 'Mike Rodriguez',
+    submittedAt: '2024-11-20T17:30:00.000Z'
+  },
+  {
+    id: '2',
+    projectId: '2',
+    date: '2024-11-19',
+    weather: 'Partly cloudy, 72°F',
+    workCompleted: 'Site preparation completed. Removed existing vegetation and graded the area for new landscaping.',
+    notes: 'Irrigation lines marked and protected. Ready for next phase.',
+    crew: ['Lisa Martinez', 'David Park'],
+    materials: [
+      { item: 'Topsoil', quantity: '5', unit: 'yards' }
+    ],
+    equipment: ['Bobcat', 'Hand tools'],
+    submittedBy: 'Lisa Martinez',
+    submittedAt: '2024-11-19T16:45:00.000Z'
+  }
+]
+
+const sampleTimeEntries = [
+  {
+    id: '1',
+    projectId: '1',
+    date: '2024-11-20',
+    clockIn: '07:30:00',
+    clockOut: '16:30:00',
+    totalHours: 8.5,
+    description: 'Deck construction - installed framing and started decking boards'
+  },
+  {
+    id: '2',
+    projectId: '1',
+    date: '2024-11-19',
+    clockIn: '08:00:00',
+    clockOut: '17:00:00',
+    totalHours: 8.0,
+    description: 'Prepared deck foundation and installed support posts'
+  },
+  {
+    id: '3',
+    projectId: '2',
+    date: '2024-11-19',
+    clockIn: '07:00:00',
+    clockOut: '15:30:00',
+    totalHours: 7.5,
+    description: 'Site preparation and landscaping layout'
+  }
+]
+
 // Centralized data store replacing DataContext
 export const useDataStore = create(
   persist(
@@ -140,8 +204,8 @@ export const useDataStore = create(
         projects: sampleProjects,
         tasks: sampleTasks,
         clients: sampleClients,
-        dailyLogs: [],
-        timeEntries: [],
+        dailyLogs: sampleDailyLogs,
+        timeEntries: sampleTimeEntries,
         documents: []
       },
       loading: false,
@@ -160,11 +224,7 @@ export const useDataStore = create(
           // In a real app, this would load from API
           // For now, we just use the sample data
           await new Promise(resolve => setTimeout(resolve, 500)) // Simulate loading
-          
-          set({ 
-            loading: false, 
-            lastSync: new Date().toISOString() 
-          })
+          set({ loading: false, lastSync: new Date().toISOString() })
         } catch (error) {
           set({ error: error.message, loading: false })
         }
@@ -324,6 +384,58 @@ export const useDataStore = create(
 
           if (onSuccess) onSuccess()
           return { success: true }
+        } catch (error) {
+          if (onError) onError(error)
+          throw error
+        }
+      },
+
+      // Daily log CRUD operations
+      createDailyLog: async (logData, options = {}) => {
+        const { onSuccess, onError } = options
+        try {
+          const newLog = {
+            id: Date.now().toString(),
+            ...logData,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+
+          set(state => ({
+            data: {
+              ...state.data,
+              dailyLogs: [newLog, ...state.data.dailyLogs]
+            }
+          }))
+
+          if (onSuccess) onSuccess(newLog)
+          return { success: true, data: newLog }
+        } catch (error) {
+          if (onError) onError(error)
+          throw error
+        }
+      },
+
+      // Time entry CRUD operations
+      createTimeEntry: async (entryData, options = {}) => {
+        const { onSuccess, onError } = options
+        try {
+          const newEntry = {
+            id: Date.now().toString(),
+            ...entryData,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+
+          set(state => ({
+            data: {
+              ...state.data,
+              timeEntries: [newEntry, ...state.data.timeEntries]
+            }
+          }))
+
+          if (onSuccess) onSuccess(newEntry)
+          return { success: true, data: newEntry }
         } catch (error) {
           if (onError) onError(error)
           throw error
