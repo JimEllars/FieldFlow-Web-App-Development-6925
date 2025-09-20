@@ -174,7 +174,7 @@ const PhotoCapture = ({ projectId, onPhotoCapture, onError, category = 'photos',
 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('fieldflow-documents')
+          .from('foremanos-documents')
           .upload(filePath, photo.blob, {
             cacheControl: '3600',
             upsert: false
@@ -184,7 +184,7 @@ const PhotoCapture = ({ projectId, onPhotoCapture, onError, category = 'photos',
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from('fieldflow-documents')
+          .from('foremanos-documents')
           .getPublicUrl(filePath)
 
         // Save document metadata

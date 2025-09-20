@@ -58,7 +58,7 @@ function App() {
 
   useEffect(() => {
     // Initialize theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('fieldflow-theme')
+    const savedTheme = localStorage.getItem('foremanos-theme')
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     
     if (savedTheme) {
@@ -71,7 +71,7 @@ function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <Suspense fallback={<LoadingSpinner text="Loading FieldFlow..." />}>
+        <Suspense fallback={<LoadingSpinner text="Loading ForemanOS..." />}>
           <Routes>
             {/* Authentication Routes */}
             <Route 

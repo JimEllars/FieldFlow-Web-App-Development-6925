@@ -73,7 +73,7 @@ export const isLowEndDevice = () => {
 // Preload critical resources
 export const preloadCriticalResources = () => {
   const criticalResources = [
-    '/fieldflow-icon.svg'
+    '/foremanos-icon.svg'
     // Add other critical resources
   ]
 

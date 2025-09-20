@@ -32,7 +32,7 @@ const TopHeader = ({ onMenuClick }) => {
     if (path.includes('/profile')) return 'Profile'
     if (path.includes('/settings')) return 'Settings'
     if (path.includes('/billing')) return 'Billing'
-    return 'FieldFlow'
+    return 'ForemanOS'
   }
 
   const handleSyncStatusClick = () => {

@@ -304,7 +304,7 @@ export const useOfflineStore = create(
       }
     }),
     {
-      name: 'fieldflow-offline-store',
+      name: 'foremanos-offline-store',
       partialize: (state) => ({
         pendingChanges: state.pendingChanges,
         failedChanges: state.failedChanges,

@@ -1,10 +1,10 @@
--- Enhanced database schema for commercial FieldFlow
+-- Enhanced database schema for commercial ForemanOS
 
 -- Enable RLS on all tables by default
 ALTER DATABASE postgres SET row_security = on;
 
 -- Create companies table (enhanced)
-CREATE TABLE IF NOT EXISTS companies_ff2024 (
+CREATE TABLE IF NOT EXISTS companies_fos2024 (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   
@@ -33,12 +33,12 @@ CREATE TABLE IF NOT EXISTS companies_ff2024 (
 );
 
 -- Enable RLS on companies
-ALTER TABLE companies_ff2024 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies_fos2024 ENABLE ROW LEVEL SECURITY;
 
 -- Create subscriptions table
-CREATE TABLE IF NOT EXISTS subscriptions_ff2024 (
+CREATE TABLE IF NOT EXISTS subscriptions_fos2024 (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies_ff2024(id) ON DELETE CASCADE,
+  company_id UUID NOT NULL REFERENCES companies_fos2024(id) ON DELETE CASCADE,
   
   -- Stripe fields
   stripe_subscription_id TEXT UNIQUE,
@@ -61,12 +61,12 @@ CREATE TABLE IF NOT EXISTS subscriptions_ff2024 (
 );
 
 -- Enable RLS on subscriptions
-ALTER TABLE subscriptions_ff2024 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions_fos2024 ENABLE ROW LEVEL SECURITY;
 
 -- Create enhanced profiles table
-CREATE TABLE IF NOT EXISTS profiles_ff2024 (
+CREATE TABLE IF NOT EXISTS profiles_fos2024 (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  company_id UUID NOT NULL REFERENCES companies_ff2024(id) ON DELETE CASCADE,
+  company_id UUID NOT NULL REFERENCES companies_fos2024(id) ON DELETE CASCADE,
   
   -- Profile information
   name TEXT NOT NULL,
@@ -92,12 +92,12 @@ CREATE TABLE IF NOT EXISTS profiles_ff2024 (
 );
 
 -- Enable RLS on profiles
-ALTER TABLE profiles_ff2024 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles_fos2024 ENABLE ROW LEVEL SECURITY;
 
 -- Create clients table (new CRM functionality)
-CREATE TABLE IF NOT EXISTS clients_ff2024 (
+CREATE TABLE IF NOT EXISTS clients_fos2024 (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies_ff2024(id) ON DELETE CASCADE,
+  company_id UUID NOT NULL REFERENCES companies_fos2024(id) ON DELETE CASCADE,
   
   -- Client information
   name TEXT NOT NULL,
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS clients_ff2024 (
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  created_by UUID REFERENCES profiles_ff2024(id),
+  created_by UUID REFERENCES profiles_fos2024(id),
   
   -- Indexing for search
   search_vector tsvector GENERATED ALWAYS AS (
@@ -118,78 +118,78 @@ CREATE TABLE IF NOT EXISTS clients_ff2024 (
 );
 
 -- Enable RLS on clients
-ALTER TABLE clients_ff2024 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clients_fos2024 ENABLE ROW LEVEL SECURITY;
 
 -- Create index for client search
-CREATE INDEX IF NOT EXISTS idx_clients_search ON clients_ff2024 USING GIN (search_vector);
-CREATE INDEX IF NOT EXISTS idx_clients_company_id ON clients_ff2024 (company_id);
+CREATE INDEX IF NOT EXISTS idx_clients_search ON clients_fos2024 USING GIN (search_vector);
+CREATE INDEX IF NOT EXISTS idx_clients_company_id ON clients_fos2024 (company_id);
 
 -- Update projects table to reference clients
-ALTER TABLE projects_ff2024 
-ADD COLUMN IF NOT EXISTS client_id UUID REFERENCES clients_ff2024(id) ON DELETE SET NULL;
+ALTER TABLE projects_fos2024
+ADD COLUMN IF NOT EXISTS client_id UUID REFERENCES clients_fos2024(id) ON DELETE SET NULL;
 
 -- Create index for projects-clients relationship
-CREATE INDEX IF NOT EXISTS idx_projects_client_id ON projects_ff2024 (client_id);
+CREATE INDEX IF NOT EXISTS idx_projects_client_id ON projects_fos2024 (client_id);
 
 -- RLS Policies for Companies
-CREATE POLICY "Companies are viewable by their members" ON companies_ff2024
+CREATE POLICY "Companies are viewable by their members" ON companies_fos2024
   FOR SELECT USING (
     id IN (
-      SELECT company_id FROM profiles_ff2024 
+      SELECT company_id FROM profiles_fos2024
       WHERE id = auth.uid()
     )
   );
 
-CREATE POLICY "Companies are updatable by admins" ON companies_ff2024
+CREATE POLICY "Companies are updatable by admins" ON companies_fos2024
   FOR UPDATE USING (
     id IN (
-      SELECT company_id FROM profiles_ff2024 
+      SELECT company_id FROM profiles_fos2024
       WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
 -- RLS Policies for Subscriptions  
-CREATE POLICY "Subscriptions are viewable by company admins" ON subscriptions_ff2024
+CREATE POLICY "Subscriptions are viewable by company admins" ON subscriptions_fos2024
   FOR SELECT USING (
     company_id IN (
-      SELECT company_id FROM profiles_ff2024 
+      SELECT company_id FROM profiles_fos2024
       WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
 -- RLS Policies for Profiles
-CREATE POLICY "Profiles are viewable by company members" ON profiles_ff2024
+CREATE POLICY "Profiles are viewable by company members" ON profiles_fos2024
   FOR SELECT USING (
     company_id IN (
-      SELECT company_id FROM profiles_ff2024 
+      SELECT company_id FROM profiles_fos2024
       WHERE id = auth.uid()
     )
   );
 
-CREATE POLICY "Users can update their own profile" ON profiles_ff2024
+CREATE POLICY "Users can update their own profile" ON profiles_fos2024
   FOR UPDATE USING (id = auth.uid());
 
-CREATE POLICY "Admins can update company profiles" ON profiles_ff2024
+CREATE POLICY "Admins can update company profiles" ON profiles_fos2024
   FOR UPDATE USING (
     company_id IN (
-      SELECT company_id FROM profiles_ff2024 
+      SELECT company_id FROM profiles_fos2024
       WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
 -- RLS Policies for Clients
-CREATE POLICY "Clients are viewable by company members" ON clients_ff2024
+CREATE POLICY "Clients are viewable by company members" ON clients_fos2024
   FOR SELECT USING (
     company_id IN (
-      SELECT company_id FROM profiles_ff2024 
+      SELECT company_id FROM profiles_fos2024
       WHERE id = auth.uid()
     )
   );
 
-CREATE POLICY "Clients are manageable by company members" ON clients_ff2024
+CREATE POLICY "Clients are manageable by company members" ON clients_fos2024
   FOR ALL USING (
     company_id IN (
-      SELECT company_id FROM profiles_ff2024 
+      SELECT company_id FROM profiles_fos2024
       WHERE id = auth.uid()
     )
   );
@@ -197,117 +197,117 @@ CREATE POLICY "Clients are manageable by company members" ON clients_ff2024
 -- Update existing table RLS policies to use company_id pattern
 
 -- Projects RLS
-DROP POLICY IF EXISTS "Users can view own projects" ON projects_ff2024;
-CREATE POLICY "Projects are viewable by company members" ON projects_ff2024
+DROP POLICY IF EXISTS "Users can view own projects" ON projects_fos2024;
+CREATE POLICY "Projects are viewable by company members" ON projects_fos2024
   FOR SELECT USING (
     user_id IN (
-      SELECT id FROM profiles_ff2024 
+      SELECT id FROM profiles_fos2024
       WHERE company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Projects are manageable by company members" ON projects_ff2024
+CREATE POLICY "Projects are manageable by company members" ON projects_fos2024
   FOR ALL USING (
     user_id IN (
-      SELECT id FROM profiles_ff2024 
+      SELECT id FROM profiles_fos2024
       WHERE company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
 -- Tasks RLS
-DROP POLICY IF EXISTS "Users can view own tasks" ON tasks_ff2024;
-CREATE POLICY "Tasks are viewable by company members" ON tasks_ff2024
+DROP POLICY IF EXISTS "Users can view own tasks" ON tasks_fos2024;
+CREATE POLICY "Tasks are viewable by company members" ON tasks_fos2024
   FOR SELECT USING (
     project_id IN (
-      SELECT id FROM projects_ff2024 p
-      JOIN profiles_ff2024 pr ON p.user_id = pr.id
+      SELECT id FROM projects_fos2024 p
+      JOIN profiles_fos2024 pr ON p.user_id = pr.id
       WHERE pr.company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Tasks are manageable by company members" ON tasks_ff2024
+CREATE POLICY "Tasks are manageable by company members" ON tasks_fos2024
   FOR ALL USING (
     project_id IN (
-      SELECT id FROM projects_ff2024 p
-      JOIN profiles_ff2024 pr ON p.user_id = pr.id
+      SELECT id FROM projects_fos2024 p
+      JOIN profiles_fos2024 pr ON p.user_id = pr.id
       WHERE pr.company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
 -- Daily Logs RLS
-DROP POLICY IF EXISTS "Users can view own daily logs" ON daily_logs_ff2024;
-CREATE POLICY "Daily logs are viewable by company members" ON daily_logs_ff2024
+DROP POLICY IF EXISTS "Users can view own daily logs" ON daily_logs_fos2024;
+CREATE POLICY "Daily logs are viewable by company members" ON daily_logs_fos2024
   FOR SELECT USING (
     project_id IN (
-      SELECT id FROM projects_ff2024 p
-      JOIN profiles_ff2024 pr ON p.user_id = pr.id
+      SELECT id FROM projects_fos2024 p
+      JOIN profiles_fos2024 pr ON p.user_id = pr.id
       WHERE pr.company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Daily logs are manageable by company members" ON daily_logs_ff2024
+CREATE POLICY "Daily logs are manageable by company members" ON daily_logs_fos2024
   FOR ALL USING (
     project_id IN (
-      SELECT id FROM projects_ff2024 p
-      JOIN profiles_ff2024 pr ON p.user_id = pr.id
+      SELECT id FROM projects_fos2024 p
+      JOIN profiles_fos2024 pr ON p.user_id = pr.id
       WHERE pr.company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
 -- Time Entries RLS  
-DROP POLICY IF EXISTS "Users can view own time entries" ON time_entries_ff2024;
-CREATE POLICY "Time entries are viewable by company members" ON time_entries_ff2024
+DROP POLICY IF EXISTS "Users can view own time entries" ON time_entries_fos2024;
+CREATE POLICY "Time entries are viewable by company members" ON time_entries_fos2024
   FOR SELECT USING (
     user_id IN (
-      SELECT id FROM profiles_ff2024 
+      SELECT id FROM profiles_fos2024
       WHERE company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Time entries are manageable by company members" ON time_entries_ff2024
+CREATE POLICY "Time entries are manageable by company members" ON time_entries_fos2024
   FOR ALL USING (
     user_id IN (
-      SELECT id FROM profiles_ff2024 
+      SELECT id FROM profiles_fos2024
       WHERE company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
 -- Documents RLS
-DROP POLICY IF EXISTS "Users can view own documents" ON documents_ff2024;
-CREATE POLICY "Documents are viewable by company members" ON documents_ff2024
+DROP POLICY IF EXISTS "Users can view own documents" ON documents_fos2024;
+CREATE POLICY "Documents are viewable by company members" ON documents_fos2024
   FOR SELECT USING (
     project_id IN (
-      SELECT id FROM projects_ff2024 p
-      JOIN profiles_ff2024 pr ON p.user_id = pr.id
+      SELECT id FROM projects_fos2024 p
+      JOIN profiles_fos2024 pr ON p.user_id = pr.id
       WHERE pr.company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Documents are manageable by company members" ON documents_ff2024
+CREATE POLICY "Documents are manageable by company members" ON documents_fos2024
   FOR ALL USING (
     project_id IN (
-      SELECT id FROM projects_ff2024 p
-      JOIN profiles_ff2024 pr ON p.user_id = pr.id
+      SELECT id FROM projects_fos2024 p
+      JOIN profiles_fos2024 pr ON p.user_id = pr.id
       WHERE pr.company_id = (
-        SELECT company_id FROM profiles_ff2024 WHERE id = auth.uid()
+        SELECT company_id FROM profiles_fos2024 WHERE id = auth.uid()
       )
     )
   );
@@ -324,10 +324,10 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
-CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies_ff2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions_ff2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles_ff2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients_ff2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies_fos2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions_fos2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles_fos2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients_fos2024 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to automatically create a company and admin profile on user signup
 CREATE OR REPLACE FUNCTION handle_new_user_signup()
@@ -336,12 +336,12 @@ DECLARE
   new_company_id UUID;
 BEGIN
   -- Create a new company for the user
-  INSERT INTO companies_ff2024 (name)
+  INSERT INTO companies_fos2024 (name)
   VALUES (COALESCE(NEW.raw_user_meta_data->>'company', NEW.email || '''s Company'))
   RETURNING id INTO new_company_id;
   
   -- Create the admin profile
-  INSERT INTO profiles_ff2024 (
+  INSERT INTO profiles_fos2024 (
     id, 
     company_id, 
     name, 
@@ -374,13 +374,13 @@ DECLARE
 BEGIN
   -- Calculate total storage used by company
   SELECT COALESCE(SUM(size_bytes), 0) INTO total_storage
-  FROM documents_ff2024 d
-  JOIN projects_ff2024 p ON d.project_id = p.id
-  JOIN profiles_ff2024 pr ON p.user_id = pr.id
+  FROM documents_fos2024 d
+  JOIN projects_fos2024 p ON d.project_id = p.id
+  JOIN profiles_fos2024 pr ON p.user_id = pr.id
   WHERE pr.company_id = company_uuid;
   
   -- Update company storage usage
-  UPDATE companies_ff2024 
+  UPDATE companies_fos2024
   SET storage_used_bytes = total_storage,
       updated_at = NOW()
   WHERE id = company_uuid;
@@ -395,7 +395,7 @@ DECLARE
   demo_client_id UUID;
 BEGIN
   -- Create demo company if it doesn't exist
-  INSERT INTO companies_ff2024 (
+  INSERT INTO companies_fos2024 (
     id,
     name,
     subscription_status,
@@ -422,7 +422,7 @@ BEGIN
   demo_company_id := '123e4567-e89b-12d3-a456-426614174000'::UUID;
 
   -- Create demo clients
-  INSERT INTO clients_ff2024 (
+  INSERT INTO clients_fos2024 (
     id,
     company_id,
     name,
@@ -464,12 +464,12 @@ BEGIN
 END $$;
 
 -- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_companies_stripe_customer_id ON companies_ff2024 (stripe_customer_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_company_id ON subscriptions_ff2024 (company_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_id ON subscriptions_ff2024 (stripe_subscription_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_company_id ON profiles_ff2024 (company_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles_ff2024 (email);
-CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles_ff2024 (role);
+CREATE INDEX IF NOT EXISTS idx_companies_stripe_customer_id ON companies_fos2024 (stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_company_id ON subscriptions_fos2024 (company_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_id ON subscriptions_fos2024 (stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_company_id ON profiles_fos2024 (company_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles_fos2024 (email);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles_fos2024 (role);
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO authenticated, anon;

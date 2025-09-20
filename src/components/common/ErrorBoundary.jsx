@@ -12,7 +12,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }) => {
     if (error?.name === 'ChunkLoadError') {
       return {
         title: 'App Update Available',
-        message: 'A new version of FieldFlow is available. Please refresh the page to update.',
+        message: 'A new version of ForemanOS is available. Please refresh the page to update.',
         action: 'Refresh Page',
         actionFn: () => window.location.reload()
       }
@@ -21,7 +21,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }) => {
     if (error?.message?.includes('Network')) {
       return {
         title: 'Network Error',
-        message: 'Unable to connect to FieldFlow services. Please check your internet connection.',
+        message: 'Unable to connect to ForemanOS services. Please check your internet connection.',
         action: 'Retry',
         actionFn: resetErrorBoundary
       }

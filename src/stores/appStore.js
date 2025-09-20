@@ -65,7 +65,7 @@ export const useAppStore = create(
       })
     }),
     {
-      name: 'fieldflow-app-store',
+      name: 'foremanos-app-store',
       partialize: (state) => ({
         theme: state.theme,
         preferences: state.preferences,

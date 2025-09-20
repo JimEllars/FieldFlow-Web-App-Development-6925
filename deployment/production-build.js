@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * FieldFlow Production Build Script
+ * ForemanOS Production Build Script
  * Automates the build process for Bluehost deployment
  */
 
@@ -9,7 +9,7 @@ const fs = require('fs')
 const path = require('path')
 const { execSync } = require('child_process')
 
-console.log('🚀 FieldFlow Production Build Starting...')
+console.log('🚀 ForemanOS Production Build Starting...')
 console.log('=====================================')
 
 // Configuration
@@ -17,7 +17,7 @@ const config = {
   buildDir: 'dist',
   deploymentDir: 'deployment-package',
   domain: 'yourdomain.com', // Replace with actual domain
-  subdomain: 'fieldflow'
+  subdomain: 'foremanos'
 }
 
 function createProductionEnv() {
@@ -28,7 +28,7 @@ VITE_TEST_MODE=false
 VITE_SUPABASE_URL=https://pehaktnlutpofluqcele.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlaGFrdG5sdXRwb2ZsdXFjZWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNzU4MDksImV4cCI6MjA3MTY1MTgwOX0.z_e7IsTMytAVO9YPVVJURY6qw3w_--DHy9hmMAWZNco
 
-VITE_APP_NAME=FieldFlow
+VITE_APP_NAME=ForemanOS
 VITE_APP_VERSION=2.0.0
 VITE_APP_BASE_URL=https://${config.subdomain}.${config.domain}
 
@@ -103,7 +103,7 @@ function createDeploymentPackage() {
 function createDeploymentInstructions() {
   console.log('📋 Creating deployment instructions...')
   
-  const instructions = `FieldFlow Bluehost Deployment Instructions
+  const instructions = `ForemanOS Bluehost Deployment Instructions
 ==========================================
 
 DEPLOYMENT READY! 🎉
@@ -120,7 +120,7 @@ Upload all files in this folder to: /public_html/${config.subdomain}/
 Method 1 - File Manager:
 - cPanel → File Manager
 - Navigate to /public_html/${config.subdomain}/
-- Upload and extract fieldflow-production-deploy.zip
+- Upload and extract foremanos-production-deploy.zip
 
 Method 2 - FTP:
 - Host: ${config.domain}
@@ -133,7 +133,7 @@ Method 2 - FTP:
 
 🧪 TESTING:
 1. Visit: https://${config.subdomain}.${config.domain}
-2. Should show FieldFlow login page
+2. Should show ForemanOS login page
 3. Test user registration/login
 4. Verify mobile functionality
 
@@ -145,7 +145,7 @@ Method 2 - FTP:
 
 🆘 SUPPORT:
 - Bluehost: 24/7 support chat
-- FieldFlow: support@aximsystems.com
+- ForemanOS: support@aximsystems.com
 
 Generated: ${new Date().toLocaleString()}
 Build Version: 2.0.0
@@ -159,8 +159,8 @@ function createZipPackage() {
   console.log('🗜️  Creating ZIP package...')
   
   try {
-    execSync(`cd ${config.deploymentDir} && zip -r ../fieldflow-production-deploy.zip . -x "*.DS_Store"`, { stdio: 'pipe' })
-    console.log('✅ ZIP package created: fieldflow-production-deploy.zip')
+    execSync(`cd ${config.deploymentDir} && zip -r ../foremanos-production-deploy.zip . -x "*.DS_Store"`, { stdio: 'pipe' })
+    console.log('✅ ZIP package created: foremanos-production-deploy.zip')
   } catch (error) {
     console.log('⚠️  ZIP creation failed, use folder contents instead')
   }
@@ -171,12 +171,12 @@ function displaySummary() {
   console.log('🎉 DEPLOYMENT READY!')
   console.log('===================')
   console.log(`📁 Deployment files: ./${config.deploymentDir}/`)
-  console.log(`📦 ZIP package: ./fieldflow-production-deploy.zip`)
+  console.log(`📦 ZIP package: ./foremanos-production-deploy.zip`)
   console.log(`🌐 Target URL: https://${config.subdomain}.${config.domain}`)
   console.log('')
   console.log('📋 NEXT STEPS:')
   console.log('1. Create subdomain in Bluehost cPanel')
-  console.log('2. Upload deployment files to /public_html/fieldflow/')
+  console.log('2. Upload deployment files to /public_html/foremanos/')
   console.log('3. Test the deployment')
   console.log('')
   console.log('✨ Features Enabled:')

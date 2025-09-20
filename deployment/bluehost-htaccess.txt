@@ -1,4 +1,4 @@
-# FieldFlow Production .htaccess Configuration
+# ForemanOS Production .htaccess Configuration
 # Place this file as .htaccess in your subdomain root folder
 
 RewriteEngine On

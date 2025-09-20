@@ -545,7 +545,7 @@ export class DocumentService extends BaseService {
       const { cacheControl = '3600', upsert = false } = options
 
       const { data, error } = await supabase.storage
-        .from('fieldflow-documents')
+        .from('foremanos-documents')
         .upload(filePath, file, { cacheControl, upsert })
 
       if (error) this.handleError(error, 'upload file')
@@ -558,7 +558,7 @@ export class DocumentService extends BaseService {
   async getPublicUrl(filePath) {
     try {
       const { data } = supabase.storage
-        .from('fieldflow-documents')
+        .from('foremanos-documents')
         .getPublicUrl(filePath)
 
       return data.publicUrl
@@ -570,7 +570,7 @@ export class DocumentService extends BaseService {
   async deleteFile(filePath) {
     try {
       const { error } = await supabase.storage
-        .from('fieldflow-documents')
+        .from('foremanos-documents')
         .remove([filePath])
 
       if (error) this.handleError(error, 'delete file')

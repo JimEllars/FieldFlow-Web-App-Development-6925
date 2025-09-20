@@ -117,7 +117,7 @@ const SettingsScreen = () => {
           
           <button
             onClick={() => {
-              localStorage.removeItem('fieldflow-theme')
+              localStorage.removeItem('foremanos-theme')
               window.location.reload()
             }}
             className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center"

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# FieldFlow Production Build and Deploy Script
+# ForemanOS Production Build and Deploy Script
 # Run this script to build and prepare for Bluehost deployment
 
-echo "🚀 FieldFlow Production Deployment Script"
+echo "🚀 ForemanOS Production Deployment Script"
 echo "========================================="
 
 # Check if Node.js is installed
@@ -38,9 +38,9 @@ cat > .env.production << EOL
 VITE_TEST_MODE=false
 VITE_SUPABASE_URL=https://pehaktnlutpofluqcele.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlaGFrdG5sdXRwb2ZsdXFjZWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNzU4MDksImV4cCI6MjA3MTY1MTgwOX0.z_e7IsTMytAVO9YPVVJURY6qw3w_--DHy9hmMAWZNco
-VITE_APP_NAME=FieldFlow
+VITE_APP_NAME=ForemanOS
 VITE_APP_VERSION=2.0.0
-VITE_APP_BASE_URL=https://fieldflow.yourdomain.com
+VITE_APP_BASE_URL=https://foremanos.yourdomain.com
 VITE_ENABLE_OFFLINE_MODE=true
 VITE_ENABLE_PERFORMANCE_MONITORING=true
 VITE_DEBUG_MODE=false
@@ -67,14 +67,14 @@ cp deployment/bluehost-htaccess.txt deployment-package/.htaccess
 
 # Create deployment instructions
 cat > deployment-package/DEPLOYMENT_INSTRUCTIONS.txt << EOL
-FieldFlow Deployment Instructions for Bluehost
+ForemanOS Deployment Instructions for Bluehost
 ==============================================
 
 1. Create subdomain in Bluehost cPanel:
-   - Subdomain: fieldflow
-   - Document Root: public_html/fieldflow
+   - Subdomain: foremanos
+   - Document Root: public_html/foremanos
 
-2. Upload all files in this folder to: /public_html/fieldflow/
+2. Upload all files in this folder to: /public_html/foremanos/
    
 3. Ensure .htaccess file is uploaded and visible
 
@@ -82,8 +82,8 @@ FieldFlow Deployment Instructions for Bluehost
    - Update VITE_APP_BASE_URL in build process
 
 5. Test the deployment:
-   - Visit: https://fieldflow.yourdomain.com
-   - Should show FieldFlow login page
+   - Visit: https://foremanos.yourdomain.com
+   - Should show ForemanOS login page
 
 6. Default login credentials:
    - Any email/password (since VITE_TEST_MODE=false, use real Supabase auth)
@@ -95,9 +95,9 @@ EOL
 # Create ZIP file for easy upload
 if command -v zip &> /dev/null; then
     cd deployment-package
-    zip -r ../fieldflow-production-deploy.zip . -x "*.DS_Store" "*.git*"
+    zip -r ../foremanos-production-deploy.zip . -x "*.DS_Store" "*.git*"
     cd ..
-    echo "✅ Created fieldflow-production-deploy.zip"
+    echo "✅ Created foremanos-production-deploy.zip"
 else
     echo "⚠️  ZIP not available, use deployment-package folder contents"
 fi
@@ -106,13 +106,13 @@ echo ""
 echo "🎉 DEPLOYMENT READY!"
 echo "==================="
 echo "📁 Files ready in: ./deployment-package/"
-echo "📦 ZIP package: ./fieldflow-production-deploy.zip"
+echo "📦 ZIP package: ./foremanos-production-deploy.zip"
 echo ""
 echo "📋 Next Steps:"
-echo "1. Create subdomain 'fieldflow' in Bluehost cPanel"
-echo "2. Upload deployment-package contents to /public_html/fieldflow/"
+echo "1. Create subdomain 'foremanos' in Bluehost cPanel"
+echo "2. Upload deployment-package contents to /public_html/foremanos/"
 echo "3. Ensure .htaccess file is properly uploaded"
-echo "4. Visit https://fieldflow.yourdomain.com"
+echo "4. Visit https://foremanos.yourdomain.com"
 echo ""
 echo "🔧 Production Features:"
 echo "✅ Real Supabase authentication (VITE_TEST_MODE=false)"

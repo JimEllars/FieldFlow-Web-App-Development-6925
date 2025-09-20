@@ -43,7 +43,7 @@ class ErrorLogger {
       // })
       
       // For now, store in localStorage for later retrieval
-      const storedErrors = JSON.parse(localStorage.getItem('fieldflow-errors') || '[]')
+      const storedErrors = JSON.parse(localStorage.getItem('foremanos-errors') || '[]')
       storedErrors.push(errorEntry)
       
       // Keep only last 20 errors
@@ -51,7 +51,7 @@ class ErrorLogger {
         storedErrors.splice(0, storedErrors.length - 20)
       }
       
-      localStorage.setItem('fieldflow-errors', JSON.stringify(storedErrors))
+      localStorage.setItem('foremanos-errors', JSON.stringify(storedErrors))
     } catch (err) {
       console.warn('Failed to log error to external service:', err)
     }
