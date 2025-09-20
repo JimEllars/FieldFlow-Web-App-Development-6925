@@ -73,10 +73,6 @@ CREATE TABLE IF NOT EXISTS profiles_fos2024 (
   email TEXT NOT NULL,
   avatar_url TEXT,
   
-  -- Role and permissions
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
-  permissions JSONB DEFAULT '[]'::jsonb,
-  
   -- Status
   is_active BOOLEAN DEFAULT TRUE,
   last_login_at TIMESTAMPTZ,
@@ -334,27 +330,33 @@ CREATE OR REPLACE FUNCTION handle_new_user_signup()
 RETURNS TRIGGER AS $$
 DECLARE
   new_company_id UUID;
+  owner_role_id UUID;
 BEGIN
   -- Create a new company for the user
   INSERT INTO companies_fos2024 (name)
   VALUES (COALESCE(NEW.raw_user_meta_data->>'company', NEW.email || '''s Company'))
   RETURNING id INTO new_company_id;
   
-  -- Create the admin profile
+  -- Get the Owner role ID
+  SELECT id INTO owner_role_id FROM roles WHERE name = 'Owner';
+
+  -- Create the owner profile
   INSERT INTO profiles_fos2024 (
     id, 
     company_id, 
     name, 
-    email, 
-    role
+    email
   )
   VALUES (
     NEW.id,
     new_company_id,
     COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
-    NEW.email,
-    'admin'
+    NEW.email
   );
+
+  -- Assign the Owner role to the new user
+  INSERT INTO user_roles (user_id, role_id)
+  VALUES (NEW.id, owner_role_id);
   
   RETURN NEW;
 END;
