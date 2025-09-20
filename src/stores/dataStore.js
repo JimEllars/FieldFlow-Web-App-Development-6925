@@ -576,7 +576,7 @@ export const useDataStore = create(
       }
     }),
     {
-      name: 'fieldflow-data-store',
+      name: 'foremanos-data-store',
       partialize: (state) => ({
         data: state.data,
         lastSync: state.lastSync

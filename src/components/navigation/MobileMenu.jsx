@@ -102,10 +102,10 @@ const MobileMenu = ({ isOpen, onClose }) => {
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <img src="/fieldflow-icon.svg" alt="FieldFlow" className="w-6 h-6" />
+                  <img src="/foreman-os-icon.svg" alt="ForemanOS" className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-gray-900 dark:text-gray-100">FieldFlow</h2>
+                  <h2 className="font-semibold text-gray-900 dark:text-gray-100">ForemanOS</h2>
                   {import.meta.env.VITE_TEST_MODE === 'true' && (
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
                       <SafeIcon icon={FiTestTube} className="w-3 h-3 mr-1" />

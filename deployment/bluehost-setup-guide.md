@@ -1,4 +1,4 @@
-# Bluehost Setup Guide for FieldFlow
+# Bluehost Setup Guide for ForemanOS
 
 ## 🌐 **Subdomain Creation**
 
@@ -8,12 +8,12 @@
 3. Look for "Subdomains" in the "Domains" section
 
 ### **Step 2: Create Subdomain**
-1. **Subdomain:** `fieldflow` 
+1. **Subdomain:** `foremanos`
 2. **Domain:** Select your main domain
-3. **Document Root:** Leave as auto-generated (`public_html/fieldflow`)
+3. **Document Root:** Leave as auto-generated (`public_html/foremanos`)
 4. Click "Create"
 
-**Result:** Your subdomain will be `fieldflow.yourdomain.com`
+**Result:** Your subdomain will be `foremanos.yourdomain.com`
 
 ---
 
@@ -21,9 +21,9 @@
 
 ### **Method 1: File Manager (Easiest)**
 1. cPanel → "File Manager"
-2. Navigate to `public_html/fieldflow/`
+2. Navigate to `public_html/foremanos/`
 3. Delete any default files
-4. Upload `fieldflow-production-deploy.zip`
+4. Upload `foremanos-production-deploy.zip`
 5. Right-click ZIP → "Extract"
 6. Delete the ZIP file after extraction
 
@@ -33,7 +33,7 @@ Host: yourdomain.com
 Username: your_cpanel_username  
 Password: your_cpanel_password
 Port: 21 (FTP) or 22 (SFTP)
-Directory: /public_html/fieldflow/
+Directory: /public_html/foremanos/
 ```
 
 ---
@@ -41,13 +41,13 @@ Directory: /public_html/fieldflow/
 ## ⚙️ **Post-Upload Configuration**
 
 ### **1. Verify File Structure**
-Your `/public_html/fieldflow/` should contain:
+Your `/public_html/foremanos/` should contain:
 ```
 index.html
 assets/
   - index-[hash].js
   - index-[hash].css
-fieldflow-icon.svg
+foremanos-icon.svg
 manifest.json
 sw.js
 .htaccess
@@ -59,8 +59,8 @@ sw.js
 - **.htaccess:** 644 (rw-r--r--)
 
 ### **3. Test Deployment**
-1. Visit `https://fieldflow.yourdomain.com`
-2. Should show FieldFlow login page
+1. Visit `https://foremanos.yourdomain.com`
+2. Should show ForemanOS login page
 3. Test registration and login
 4. Verify mobile responsiveness
 
@@ -147,7 +147,7 @@ sw.js
 
 **Technical Issues:**
 - Bluehost Support: 24/7 chat/phone
-- FieldFlow Support: support@aximsystems.com
+- ForemanOS Support: support@aximsystems.com
 
 **Resources:**
 - Bluehost Knowledge Base: help.bluehost.com

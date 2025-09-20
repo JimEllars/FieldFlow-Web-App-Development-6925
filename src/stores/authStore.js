@@ -33,10 +33,10 @@ export const useAuthStore = create(
             console.log('🧪 TEST MODE: Accepting login credentials')
             
             let testUser
-            if (email === 'demo@fieldflow.com' && password === 'demo123456') {
+            if (email === 'demo@foremanos.com' && password === 'demo123456') {
               testUser = {
                 id: 'demo-user-001',
-                email: 'demo@fieldflow.com',
+                email: 'demo@foremanos.com',
                 name: 'John Contractor',
                 company: 'Demo Construction Co.',
                 company_id: '123e4567-e89b-12d3-a456-426614174000',
@@ -67,13 +67,13 @@ export const useAuthStore = create(
             }
             
             // Store test user
-            localStorage.setItem('fieldflow-test-user', JSON.stringify(testUser))
+            localStorage.setItem('foremanos-test-user', JSON.stringify(testUser))
             set({ user: testUser, isAuthenticated: true, loading: false })
             
             // Show success notification
             useAppStore.getState().addNotification({
               type: 'success',
-              title: 'Welcome to FieldFlow!',
+              title: 'Welcome to ForemanOS!',
               message: testMode ? 'You are now logged in (Test Mode)' : 'Login successful'
             })
             
@@ -139,13 +139,13 @@ export const useAuthStore = create(
               }
             }
             
-            localStorage.setItem('fieldflow-test-user', JSON.stringify(testUser))
+            localStorage.setItem('foremanos-test-user', JSON.stringify(testUser))
             set({ user: testUser, isAuthenticated: true, loading: false })
             
             useAppStore.getState().addNotification({
               type: 'success',
               title: 'Account Created!',
-              message: 'Welcome to FieldFlow'
+              message: 'Welcome to ForemanOS'
             })
             
             return { success: true, user: testUser }
@@ -193,7 +193,7 @@ export const useAuthStore = create(
           const { testMode } = get()
           
           if (testMode) {
-            localStorage.removeItem('fieldflow-test-user')
+            localStorage.removeItem('foremanos-test-user')
           } else {
             const { error } = await supabase.auth.signOut()
             if (error) throw error
@@ -278,7 +278,7 @@ export const useAuthStore = create(
               role: profileData.role
             }
             
-            localStorage.setItem('fieldflow-test-user', JSON.stringify(updatedUser))
+            localStorage.setItem('foremanos-test-user', JSON.stringify(updatedUser))
             set({ user: updatedUser, loading: false })
             
             return { success: true }
@@ -333,7 +333,7 @@ export const useAuthStore = create(
           
           if (testMode) {
             // Check for test user in localStorage
-            const testUser = localStorage.getItem('fieldflow-test-user')
+            const testUser = localStorage.getItem('foremanos-test-user')
             if (testUser) {
               const userData = JSON.parse(testUser)
               set({ user: userData, isAuthenticated: true, loading: false })
@@ -362,7 +362,7 @@ export const useAuthStore = create(
       }
     }),
     {
-      name: 'fieldflow-auth-store',
+      name: 'foremanos-auth-store',
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

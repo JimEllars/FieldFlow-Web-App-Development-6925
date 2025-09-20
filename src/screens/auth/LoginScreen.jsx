@@ -41,7 +41,7 @@ const LoginScreen = () => {
     setError('')
     
     // Set demo credentials
-    const demoEmail = 'demo@fieldflow.com'
+    const demoEmail = 'demo@foremanos.com'
     const demoPassword = 'demo123456'
     
     setFormData({
@@ -87,7 +87,7 @@ const LoginScreen = () => {
       state: {
         demoData: {
           name: 'John Contractor',
-          email: 'demo@fieldflow.com',
+          email: 'demo@foremanos.com',
           company: 'Demo Construction Co.',
           password: 'demo123456'
         }
@@ -102,7 +102,7 @@ const LoginScreen = () => {
           Welcome back
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-          Sign in to your FieldFlow account
+          Sign in to your ForemanOS account
         </p>
         {testMode && (
           <div className="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
@@ -265,11 +265,11 @@ const LoginScreen = () => {
             🚀 Try the Demo
           </p>
           <p className="text-xs text-blue-700 dark:text-blue-400 mb-3">
-            Experience FieldFlow with sample construction project data
+            Experience ForemanOS with sample construction project data
           </p>
           <div className="text-xs text-blue-600 dark:text-blue-300 mb-3 p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
             <strong>Demo Credentials:</strong><br />
-            Email: demo@fieldflow.com<br />
+            Email: demo@foremanos.com<br />
             Password: demo123456
           </div>
         </div>

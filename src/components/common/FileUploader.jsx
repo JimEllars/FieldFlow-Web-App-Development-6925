@@ -181,7 +181,7 @@ const FileUploader = ({
 
       // Production mode - upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('fieldflow-documents')
+        .from('foremanos-documents')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
@@ -198,7 +198,7 @@ const FileUploader = ({
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('fieldflow-documents')
+        .from('foremanos-documents')
         .getPublicUrl(filePath)
 
       // Save document metadata to database

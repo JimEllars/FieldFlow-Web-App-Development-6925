@@ -17,7 +17,7 @@ export const useAuth = () => {
       try {
         if (TEST_MODE) {
           // Test mode - check localStorage
-          const testUser = localStorage.getItem('fieldflow-test-user')
+          const testUser = localStorage.getItem('foremanos-test-user')
           if (testUser) {
             const userData = JSON.parse(testUser)
             setUser(userData)
@@ -115,12 +115,12 @@ export const useAuth = () => {
           }
         }
 
-        localStorage.setItem('fieldflow-test-user', JSON.stringify(testUser))
+        localStorage.setItem('foremanos-test-user', JSON.stringify(testUser))
         setUser(testUser)
         
         addNotification({
           type: 'success',
-          title: 'Welcome to FieldFlow!',
+          title: 'Welcome to ForemanOS!',
           message: 'You are now logged in (Test Mode)'
         })
 
@@ -163,7 +163,7 @@ export const useAuth = () => {
       setLoading(true)
 
       if (TEST_MODE) {
-        localStorage.removeItem('fieldflow-test-user')
+        localStorage.removeItem('foremanos-test-user')
         setUser(null)
         return { success: true }
       }

@@ -1,13 +1,13 @@
 // Enhanced Service Worker with Stale-While-Revalidate Strategy
-const CACHE_NAME = 'fieldflow-v2.1.0'
-const STATIC_CACHE = 'fieldflow-static-v2'
-const API_CACHE = 'fieldflow-api-v2'
+const CACHE_NAME = 'foremanos-v2.1.0'
+const STATIC_CACHE = 'foremanos-static-v2'
+const API_CACHE = 'foremanos-api-v2'
 
 // Static assets to cache
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/fieldflow-icon.svg',
+  '/foreman-os-icon.svg',
   '/manifest.json'
 ]
 
@@ -235,10 +235,10 @@ function notifyClients(type, data) {
 self.addEventListener('sync', (event) => {
   console.log('Service Worker: Background sync triggered for:', event.tag)
   
-  if (event.tag === 'fieldflow-sync') {
+  if (event.tag === 'foremanos-sync') {
     event.waitUntil(syncOfflineData())
-  } else if (event.tag.startsWith('fieldflow-retry-')) {
-    const changeId = event.tag.replace('fieldflow-retry-', '')
+  } else if (event.tag.startsWith('foremanos-retry-')) {
+    const changeId = event.tag.replace('foremanos-retry-', '')
     event.waitUntil(retryFailedChange(changeId))
   }
 })
@@ -367,7 +367,7 @@ async function incrementRetryCount(changeId) {
 // Improved IndexedDB wrapper functions
 async function getFromIndexedDB(key) {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('FieldFlowDB', 1)
+    const request = indexedDB.open('ForemanOSDB', 1)
     
     request.onerror = () => {
       // Fallback to localStorage
@@ -411,7 +411,7 @@ async function getFromIndexedDB(key) {
 
 async function saveToIndexedDB(key, data) {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('FieldFlowDB', 1)
+    const request = indexedDB.open('ForemanOSDB', 1)
     
     request.onerror = () => {
       // Fallback to localStorage

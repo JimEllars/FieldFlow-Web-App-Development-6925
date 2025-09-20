@@ -1,5 +1,5 @@
 /**
- * @fileoverview Enhanced Type definitions for FieldFlow application
+ * @fileoverview Enhanced Type definitions for ForemanOS application
  * These JSDoc type definitions help with IDE autocompletion and documentation
  */
 

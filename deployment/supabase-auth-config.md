@@ -5,7 +5,7 @@
 ### **Step 1: Access Supabase Dashboard**
 1. Go to [supabase.com](https://supabase.com)
 2. Sign in to your account
-3. Select your FieldFlow project
+3. Select your ForemanOS project
 
 ### **Step 2: Configure Authentication**
 
@@ -13,14 +13,14 @@
 
 2. **Site URL Configuration:**
    ```
-   Site URL: https://fieldflow.yourdomain.com
+   Site URL: https://foremanos.yourdomain.com
    ```
 
 3. **Redirect URLs (Add these):**
    ```
-   https://fieldflow.yourdomain.com/auth/callback
-   https://fieldflow.yourdomain.com/auth/login
-   https://fieldflow.yourdomain.com/app/dashboard
+   https://foremanos.yourdomain.com/auth/callback
+   https://foremanos.yourdomain.com/auth/login
+   https://foremanos.yourdomain.com/app/dashboard
    http://localhost:3000 (keep for development)
    ```
 
@@ -38,7 +38,7 @@
    SET raw_app_meta_data = jsonb_set(
      COALESCE(raw_app_meta_data, '{}'), 
      '{app_url}', 
-     '"https://fieldflow.yourdomain.com"'
+     '"https://foremanos.yourdomain.com"'
    );
    ```
 
@@ -64,7 +64,7 @@
 ### **Update Your .env.production:**
 ```env
 # Replace with your actual domain
-VITE_APP_BASE_URL=https://fieldflow.yourdomain.com
+VITE_APP_BASE_URL=https://foremanos.yourdomain.com
 
 # Ensure test mode is disabled for production
 VITE_TEST_MODE=false
@@ -102,8 +102,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### **Issue: Redirect Loop**
 **Solution:** Check Site URL matches exactly:
-- ✅ Correct: `https://fieldflow.yourdomain.com`
-- ❌ Wrong: `https://fieldflow.yourdomain.com/`
+- ✅ Correct: `https://foremanos.yourdomain.com`
+- ❌ Wrong: `https://foremanos.yourdomain.com/`
 
 ### **Issue: CORS Errors**
 **Solution:** Add your domain to Supabase CORS settings

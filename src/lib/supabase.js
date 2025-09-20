@@ -21,7 +21,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'x-application-name': 'FieldFlow-Advanced'
+      'x-application-name': 'ForemanOS-Advanced'
     }
   }
 })

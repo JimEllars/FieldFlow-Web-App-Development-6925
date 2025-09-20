@@ -20,12 +20,12 @@ function question(prompt) {
 }
 
 async function updateDomainConfig() {
-  console.log('🔧 FieldFlow Domain Configuration')
+  console.log('🔧 ForemanOS Domain Configuration')
   console.log('=================================')
   
   // Get domain information
   const domain = await question('Enter your main domain (e.g., mycompany.com): ')
-  const subdomain = await question('Enter subdomain name [fieldflow]: ') || 'fieldflow'
+  const subdomain = await question('Enter subdomain name [foremanos]: ') || 'foremanos'
   
   const fullDomain = `${subdomain}.${domain}`
   
@@ -39,7 +39,7 @@ VITE_TEST_MODE=false
 VITE_SUPABASE_URL=https://pehaktnlutpofluqcele.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlaGFrdG5sdXRwb2ZsdXFjZWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNzU4MDksImV4cCI6MjA3MTY1MTgwOX0.z_e7IsTMytAVO9YPVVJURY6qw3w_--DHy9hmMAWZNco
 
-VITE_APP_NAME=FieldFlow
+VITE_APP_NAME=ForemanOS
 VITE_APP_VERSION=2.0.0
 VITE_APP_BASE_URL=https://${fullDomain}
 
@@ -63,7 +63,7 @@ VITE_DEBUG_MODE=false
     /yourdomain\.com/g, 
     domain
   ).replace(
-    /fieldflow\.yourdomain\.com/g,
+    /foremanos\.yourdomain\.com/g,
     fullDomain
   )
   

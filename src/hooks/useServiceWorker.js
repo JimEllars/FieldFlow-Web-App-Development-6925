@@ -36,7 +36,7 @@ export const useServiceWorker = () => {
               addNotification({
                 type: 'info',
                 title: 'App Update Available',
-                message: 'A new version of FieldFlow is available. Refresh to update.',
+                message: 'A new version of ForemanOS is available. Refresh to update.',
                 duration: 10000
               })
             }
@@ -85,7 +85,7 @@ export const useServiceWorker = () => {
     }
   }
 
-  const requestBackgroundSync = (tag = 'fieldflow-sync') => {
+  const requestBackgroundSync = (tag = 'foremanos-sync') => {
     if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
       navigator.serviceWorker.ready.then((registration) => {
         return registration.sync.register(tag)

@@ -1,14 +1,14 @@
-# FieldFlow Bluehost Deployment Guide
+# ForemanOS Bluehost Deployment Guide
 
 ## 🎯 **Deployment Overview**
-Deploy FieldFlow as a static React app on Bluehost subdomain with production-ready configuration.
+Deploy ForemanOS as a static React app on Bluehost subdomain with production-ready configuration.
 
 ## 📋 **Pre-Deployment Checklist**
 
 ### **1. Bluehost Requirements**
 - ✅ Bluehost hosting account with subdomain support
 - ✅ File Manager or FTP/SFTP access
-- ✅ Subdomain setup (e.g., `fieldflow.yourdomain.com`)
+- ✅ Subdomain setup (e.g., `foremanos.yourdomain.com`)
 
 ### **2. Build Requirements**
 - ✅ Node.js 18+ installed locally
@@ -27,7 +27,7 @@ Deploy FieldFlow as a static React app on Bluehost subdomain with production-rea
    VITE_TEST_MODE=false
    VITE_SUPABASE_URL=https://pehaktnlutpofluqcele.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   VITE_APP_BASE_URL=https://fieldflow.yourdomain.com
+   VITE_APP_BASE_URL=https://foremanos.yourdomain.com
    ```
 
 2. **Build for Production**
@@ -41,18 +41,18 @@ Deploy FieldFlow as a static React app on Bluehost subdomain with production-rea
 1. **Create Subdomain in Bluehost cPanel**
    - Login to Bluehost cPanel
    - Go to "Subdomains" 
-   - Create: `fieldflow.yourdomain.com`
-   - Document root: `/public_html/fieldflow/`
+   - Create: `foremanos.yourdomain.com`
+   - Document root: `/public_html/foremanos/`
 
 2. **Verify Subdomain Creation**
    - Subdomain should be accessible (showing default page)
-   - Note the file path: `/public_html/fieldflow/`
+   - Note the file path: `/public_html/foremanos/`
 
 ### **Step 3: Upload Files to Bluehost**
 
 **Option A: File Manager (Recommended)**
 1. Open Bluehost cPanel → File Manager
-2. Navigate to `/public_html/fieldflow/`
+2. Navigate to `/public_html/foremanos/`
 3. Delete default files (index.html, etc.)
 4. Upload entire contents of `dist/` folder
 5. Extract if uploaded as ZIP
@@ -65,15 +65,15 @@ Username: your_cpanel_username
 Password: your_cpanel_password
 Port: 21 (FTP) or 22 (SFTP)
 
-# Upload all files from dist/ to /public_html/fieldflow/
+# Upload all files from dist/ to /public_html/foremanos/
 ```
 
 ### **Step 4: Configure for Single Page App (SPA)**
 
-Create `.htaccess` file in `/public_html/fieldflow/`:
+Create `.htaccess` file in `/public_html/foremanos/`:
 
 ```apache
-# FieldFlow SPA Configuration
+# ForemanOS SPA Configuration
 RewriteEngine On
 
 # Handle Angular and React Router

@@ -189,7 +189,7 @@ export const useStore = create(
       
       setTheme: (theme) => {
         set({ theme })
-        localStorage.setItem('fieldflow-theme', theme)
+        localStorage.setItem('foremanos-theme', theme)
         document.documentElement.classList.toggle('dark', theme === 'dark')
       },
       
@@ -281,7 +281,7 @@ export const useStore = create(
       }))
     }),
     {
-      name: 'fieldflow-store',
+      name: 'foremanos-store',
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

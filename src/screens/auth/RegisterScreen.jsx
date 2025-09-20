@@ -96,7 +96,7 @@ const RegisterScreen = () => {
           <p className="text-sm text-blue-700 dark:text-blue-400">
             {demoData ? 
               'Demo account created successfully! You can now sign in with the demo credentials.' :
-              'Once you\'ve confirmed your email, you can sign in to start using FieldFlow.'
+              'Once you\'ve confirmed your email, you can sign in to start using ForemanOS.'
             }
           </p>
         </div>
@@ -118,7 +118,7 @@ const RegisterScreen = () => {
           {demoData ? 'Create Demo Account' : 'Create your account'}
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-          {demoData ? 'Setting up your FieldFlow demo account' : 'Get started with FieldFlow today'}
+          {demoData ? 'Setting up your ForemanOS demo account' : 'Get started with ForemanOS today'}
         </p>
       </div>
 
